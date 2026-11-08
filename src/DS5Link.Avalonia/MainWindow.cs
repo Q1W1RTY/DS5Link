@@ -107,6 +107,8 @@ internal sealed partial class MainWindow : Window {
 
     public void Display(BridgeState state) {
         current = state;
+        AutoDisconnectSwitch.IsChecked = state.AutoDisconnectEnabled == true;
+        AutoDisconnectSwitch.IsEnabled = state.AutoDisconnectEnabled.HasValue && !commanding && !exiting && !exitRequested;
         SyncAudioEffects(state);
         inputSettingsWindow?.SetEffectState(state.Effects,audioEffects.Error,audioEffects.Level,audioEffects.SignalPeak,audioEffects.SourceName,state.Mode=="xbox");
 
@@ -374,7 +376,8 @@ internal sealed partial class MainWindow : Window {
         var generation = stateGeneration;
         try {
             bool diagnostics = diagnosticsOpen && IsVisible && DateTime.UtcNow - lastDiagnostics > TimeSpan.FromSeconds(3);
-            var state = await BridgeClient.SendAsync(diagnostics ? "getDiagnostics" : "getState");
+            var state = await BridgeClient.SendAsync(diagnostics ? "getDiagnostics" : "getState",
+                gameInForeground: ForegroundExecutable.GameInForeground(profiles));
             if (diagnostics) lastDiagnostics = DateTime.UtcNow;
             if (generation == stateGeneration && !commanding) {
                 if(state.InputOptions!=inputProfile.RuntimeOptions || (state.Effects.Options with {AudioDeviceId=effectOptions.AudioDeviceId})!=effectOptions)profileApplied=false;
@@ -401,17 +404,24 @@ internal sealed partial class MainWindow : Window {
         }
     }
 
-    async Task Command(string command) {
+    async Task Command(string command, bool? autoDisconnect = null) {
         if (commanding || exiting || exitRequested) return;
         commanding = true;
-        inputCursor.Reset();
-        KeyboardOutput.ReleaseAll();
+        if (!autoDisconnect.HasValue) {
+            inputCursor.Reset();
+            KeyboardOutput.ReleaseAll();
+        }
         ++stateGeneration;
         Display(current);
         try {
-            Display(await BridgeClient.SendAsync(command));
+            Display(await (autoDisconnect is bool enabled
+                ? BridgeClient.SetAutoDisconnectAsync(enabled)
+                : BridgeClient.SendAsync(command)));
         } catch (Exception e) {
-            Display(current with { State = "Error", Error = e.Message });
+            if (autoDisconnect.HasValue)
+                SetFooterMessage(L.T("Не удалось сохранить настройку автоотключения"));
+            else
+                Display(current with { State = "Error", Error = e.Message });
         } finally {
             commanding = false;
             Display(current);
@@ -477,6 +487,11 @@ internal sealed partial class MainWindow : Window {
     async void SelectSegment_PS5(object sender, RoutedEventArgs e) { if (!current.Enabled || current.Mode != "ps5") await Command("enablePS5"); }
     async void SelectSegment_Xbox(object sender, RoutedEventArgs e) { if (!current.Enabled || current.Mode != "xbox") await Command("enableXbox"); }
     async void ToggleBridge(object sender, RoutedEventArgs e) => await Command(current.Enabled ? "pause" : "enable");
+    async void ToggleAutoDisconnect(object sender, RoutedEventArgs e) {
+        var enabled = AutoDisconnectSwitch.IsChecked == true;
+        if (current.AutoDisconnectEnabled is bool previous && enabled != previous)
+            await Command("setAutoDisconnect", enabled);
+    }
 
     // Quick Actions
     async void ReconnectBridge(object sender, RoutedEventArgs e) {

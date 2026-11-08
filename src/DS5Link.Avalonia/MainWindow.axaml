@@ -654,6 +654,13 @@
                   <CheckBox x:Name="StartupSwitch" HorizontalAlignment="Right" VerticalAlignment="Center" Theme="{StaticResource IOSGreenSwitch}" />
                 </Grid>
                 <Border Height="1" Background="#0FFFFFFF" />
+                <Grid Height="44" Margin="14,0">
+                  <TextBlock Text="{local:Tr Key=c98914a14377}" FontSize="13" Foreground="#F0F1F3" VerticalAlignment="Center" />
+                  <CheckBox x:Name="AutoDisconnectSwitch" IsCheckedChanged="ToggleAutoDisconnect" IsEnabled="False"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Theme="{StaticResource IOSGreenSwitch}"
+                            AutomationProperties.Name="{local:Tr Key=c98914a14377}" ToolTip.Tip="{local:Tr Key=b62dc4a5b620}" />
+                </Grid>
+                <Border Height="1" Background="#0FFFFFFF" />
                 <Button x:Name="AdvancedButton" Click="ToggleAdvanced" Height="44" Padding="14,0" Theme="{StaticResource GhostRowButton}">
                   <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

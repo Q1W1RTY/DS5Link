@@ -2,7 +2,7 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:local="clr-namespace:DS5Link" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="DS5Link.InputSettingsWindow" Title="{local:Tr Key=d97b91225d47}" Icon="avares://DS5Link/Assets/DS5Link.ico" Width="1120" Height="840" WindowStartupLocation="CenterOwner" Background="Transparent" Foreground="#F0F1F3" FontFamily="{DynamicResource AppFontFamily}" FontSize="14" UseLayoutRounding="True" FontFeatures="tnum" WindowDecorations="None" TransparencyLevelHint="Transparent" CanResize="False">
   <Window.Resources>
     <FontFamily x:Key="AppFontFamily">avares://DS5Link/Assets/Fonts#Geologica</FontFamily>
-    <SolidColorBrush x:Key="ShellFrameBrush" Color="#EE18181B" />
+    <SolidColorBrush x:Key="ShellFrameBrush" Color="#F718181B" />
     <SolidColorBrush x:Key="ShellBorderBrush" Color="#26FFFFFF" />
     <SolidColorBrush x:Key="ShellCardBrush" Color="#0EFFFFFF" />
     <SolidColorBrush x:Key="ShellCardBorderBrush" Color="#12FFFFFF" />
@@ -637,8 +637,6 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="DS5Link" FontSize="14" FontWeight="SemiBold" Foreground="#E5FFFFFF" />
-              <TextBlock Text=" · " FontSize="14" Foreground="#44FFFFFF" Margin="3,0" />
-              <TextBlock Text="{local:Tr Key=985b5e0f2ccf}" FontSize="14" Foreground="#B8FFFFFF" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
               <Button x:Name="MinimizeBtn" Click="MinimizeWindow" Theme="{StaticResource WindowsMinimizeButton}" ToolTip.Tip="{local:Tr Key=36c25d9ffcfd}" />
@@ -652,7 +650,6 @@
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
               <TextBlock Text="{local:Tr Key=985b5e0f2ccf}" FontSize="22" FontWeight="SemiBold" Foreground="White" />
-              <TextBlock Text="{local:Tr Key=ef1b6a12a28e}" Foreground="#B8FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,4,0,0" />
             </StackPanel>
             <Border Grid.Column="1" Padding="16,10" Theme="{StaticResource SharedCard}">
               <Grid>

@@ -14,6 +14,7 @@ internal sealed record BridgeState {
  public bool Enabled {get;init;}
  public bool UsbConnected {get;init;}
  public bool BluetoothDisconnected {get;init;}
+ public bool? AutoDisconnectEnabled {get;init;}
  public string Transport {get;init;}="Bluetooth";
  public int? BatteryPercent {get;init;}
  public bool Charging {get;init;}
@@ -33,18 +34,21 @@ internal sealed record BridgeState {
 }
 internal static class BridgeClient {
  internal static readonly JsonSerializerOptions JsonOptions=new(){PropertyNameCaseInsensitive=true,WriteIndented=true};
- public static Task<BridgeState> SendAsync(string command,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>(command,pipeName);
+ public static Task<BridgeState> SendAsync(string command,string pipeName="DS5Link.Control.v1",bool? gameInForeground=null) =>
+  SendPayloadAsync<BridgeState>(command,pipeName,gameInForeground:gameInForeground);
+ public static Task<BridgeState> SetAutoDisconnectAsync(bool enabled) =>
+  SendPayloadAsync<BridgeState>("setAutoDisconnect","DS5Link.Control.v1",new {enabled});
  public static Task<BridgeState> SetInputOptionsAsync(InputOptions options,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>("setInputOptions",pipeName,new {leftDeadzone=options.LeftDeadzone,rightDeadzone=options.RightDeadzone,touchEnabled=options.TouchEnabled,consumeTouchpad=options.ConsumeTouchpad,touchClickMask=options.TouchClickMask});
  public static Task<EffectState> SetEffectOptionsAsync(EffectOptions options,string pipeName="DS5Link.Control.v1")=>SendPayloadAsync<EffectState>("setEffectOptions",pipeName,options.Wire());
  public static Task<EffectState> ReadEffectsAsync(int audioLevel,string pipeName="DS5Link.Control.v1",long audioTick=0,HapticFrame[]? audioFrames=null)=>SendPayloadAsync<EffectState>("getEffects",pipeName,audioLevel:audioLevel,audioTick:audioTick,audioFrames:audioFrames);
  public static Task<InputPreview> ReadInputPreviewAsync(string pipeName="DS5Link.Control.v1") => SendPayloadAsync<InputPreview>("getInputPreview",pipeName);
  public static Task<TouchInputBatch> ReadInputEventsAsync(long after) => SendPayloadAsync<TouchInputBatch>("getInputEvents","DS5Link.Control.v1",afterSequence:after);
- static async Task<T> SendPayloadAsync<T>(string command,string pipeName,object? options=null,long afterSequence=0,int audioLevel=0,long audioTick=0,HapticFrame[]? audioFrames=null) where T:class {
+ static async Task<T> SendPayloadAsync<T>(string command,string pipeName,object? options=null,long afterSequence=0,int audioLevel=0,long audioTick=0,HapticFrame[]? audioFrames=null,bool? gameInForeground=null) where T:class {
    using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(4));
    using var pipe=new NamedPipeClientStream(".",pipeName,PipeDirection.InOut,PipeOptions.Asynchronous);
    await pipe.ConnectAsync(timeout.Token);
    var id=Guid.NewGuid().ToString("N");
-   var request=Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {protocolVersion=1,id,command,options,afterSequence,audioLevel,audioTick,audioFrames=audioFrames?.Select(f=>new {samples=f.Samples,tick=f.Tick})})+"\n");
+     var request=Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {protocolVersion=1,id,command,options,afterSequence,audioLevel,audioTick,audioFrames=audioFrames?.Select(f=>new {samples=f.Samples,tick=f.Tick}),gameInForeground})+"\n");
    await pipe.WriteAsync(request,timeout.Token);await pipe.FlushAsync(timeout.Token);
    using var data=new MemoryStream();var buffer=new byte[2048];bool finished=false;
    while(!finished && data.Length<=65536) {

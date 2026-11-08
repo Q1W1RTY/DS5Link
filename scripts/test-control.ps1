@@ -33,6 +33,11 @@ try {
     Start-Sleep -Milliseconds 1000
     $reply=Request '{"protocolVersion":1,"id":"one","command":"getState"}' -Fragmented
     if(!$reply.ok -or $reply.id -ne 'one' -or $reply.payload.state -ne 'Paused'){throw 'Invalid initial state'}
+    if($reply.payload.autoDisconnectEnabled -ne $true){throw 'Auto-disconnect default is disabled'}
+    $reply=Request '{"protocolVersion":1,"id":"idle-off","command":"setAutoDisconnect","options":{"enabled":false}}'
+    if(!$reply.ok -or $reply.payload.autoDisconnectEnabled -ne $false){throw 'Auto-disconnect could not be disabled'}
+    $reply=Request '{"protocolVersion":1,"id":"idle-invalid","command":"setAutoDisconnect","options":{"enabled":"true"}}'
+    if($reply.ok){throw 'Auto-disconnect accepted an invalid setting'}
     $reply=Request '{"protocolVersion":2,"id":"two","command":"enable"}'
     if($reply.ok -or $reply.error -ne 'PROTOCOL_VERSION_MISMATCH'){throw 'Version mismatch accepted'}
     $reply=Request '{"protocolVersion":1,"id":"three","command":"pause"}'
@@ -98,11 +103,14 @@ try {
     Start-Sleep -Milliseconds 1000
     $reply=Request '{"protocolVersion":1,"id":"startup-recovery-failure","command":"getState"}'
     if(!$reply.ok -or !$reply.payload.recoveryPending -or $reply.payload.state -ne 'Error'){throw 'Startup recovery failure prevented diagnostic control access'}
+    if($reply.payload.autoDisconnectEnabled -ne $false){throw 'Auto-disconnect setting lost on restart'}
     if(!(Test-Path ($database+'.hidhide-recovery.json'))){throw 'Startup recovery failure lost its journal'}
     if((Get-Content (Join-Path $run 'restart-log.txt') -Raw) -notmatch 'HIDHIDE_ACCESS_DENIED'){throw 'Startup failure did not retain the exact HidHide access error'}
     Remove-Item -LiteralPath ($database+'.hidhide-recovery.json')
     $reply=Request '{"protocolVersion":1,"id":"startup-recovery-cleared","command":"recover"}'
     if(!$reply.ok -or $reply.payload.state -ne 'Paused'){throw 'Diagnostic service could not clear recovered state'}
+    $reply=Request '{"protocolVersion":1,"id":"idle-on","command":"setAutoDisconnect","options":{"enabled":true}}'
+    if(!$reply.ok -or $reply.payload.autoDisconnectEnabled -ne $true -or (Test-Path -LiteralPath ($database+'.auto-disconnect-disabled'))){throw 'Auto-disconnect could not be re-enabled persistently'}
     Write-Host 'Control protocol tests passed (mock HidHide, no hardware capture)'
 } finally {
     if($process -and !$process.HasExited){Stop-Process -Id $process.Id;$process.WaitForExit()}
