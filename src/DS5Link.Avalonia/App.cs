@@ -12,6 +12,8 @@ internal static class DesktopLifetime
 internal sealed class App:Application
 {
  static string[] arguments=Array.Empty<string>();
+ static MainWindow? hiddenStartupWindow;
+ static bool IsBackgroundLaunch=>arguments.Contains("--background") && !arguments.Contains("--show");
  [STAThread] public static int Main(string[] args)
  {
   arguments=args;
@@ -21,8 +23,8 @@ internal sealed class App:Application
    string sid=WindowsIdentity.GetCurrent().User!.Value;
    using var mutex=new Mutex(true,(preview?"Local\\DS5Link.QA."+Environment.ProcessId+".":"Local\\DS5Link.UI.")+sid,out bool first);
    using var activate=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\DS5Link.Activate."+sid);
-   if(!preview && !first){activate.Set();return 0;}
-   var registration=preview?null:ThreadPool.RegisterWaitForSingleObject(activate,(_,_)=>Dispatcher.UIThread.Post(()=>((MainWindow?)DesktopLifetime.Current.MainWindow)?.Open()),null,Timeout.Infinite,false);
+   if(!preview && !first){if(!IsBackgroundLaunch)activate.Set();return 0;}
+   var registration=preview?null:ThreadPool.RegisterWaitForSingleObject(activate,(_,_)=>Dispatcher.UIThread.Post(()=>((MainWindow?)DesktopLifetime.Current.MainWindow??hiddenStartupWindow)?.Open()),null,Timeout.Infinite,false);
    try{return AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().StartWithClassicDesktopLifetime(args);}
    finally{registration?.Unregister(null);}
   }catch(Exception ex){Directory.CreateDirectory(Settings.DirectoryPath);File.WriteAllText(Path.Combine(Settings.DirectoryPath,"avalonia-startup-error.txt"),ex.ToString());return 1;}
@@ -34,10 +36,16 @@ internal sealed class App:Application
    bool preview=arguments.Contains("--preview")||arguments.Contains("--ui-qa");
    var settings=preview?new Settings():Settings.Load();L.SetLanguage(settings.Language);
    desktop.ShutdownMode=preview?ShutdownMode.OnMainWindowClose:ShutdownMode.OnExplicitShutdown;
-   var main=new MainWindow(preview);desktop.MainWindow=main;
+   var main=new MainWindow(preview);
    if(arguments.Contains("--ui-qa"))main.Opened+=async(_,_)=>await MigrationQa.Run(main);
-   if(preview||settings.FirstRun||arguments.Contains("--show"))main.Show();
-   if(!preview){settings.FirstRun=false;settings.Save();}
+   if(preview||!IsBackgroundLaunch){
+    desktop.MainWindow=main;
+    if(!preview && settings.FirstRun){settings.FirstRun=false;settings.Save();}
+   }else{
+    // Avalonia shows desktop.MainWindow automatically when the lifetime starts.
+    hiddenStartupWindow=main;
+    main.Opened+=(_,_)=>{desktop.MainWindow=main;hiddenStartupWindow=null;};
+   }
   }
   base.OnFrameworkInitializationCompleted();
  }
