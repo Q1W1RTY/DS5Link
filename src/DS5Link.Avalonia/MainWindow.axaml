@@ -661,23 +661,31 @@
                             AutomationProperties.Name="{local:Tr Key=c98914a14377}" ToolTip.Tip="{local:Tr Key=b62dc4a5b620}" />
                 </Grid>
                 <Border Height="1" Background="#0FFFFFFF" />
-                <Expander x:Name="IdlePolicyExpander" Margin="14,4">
-                  <StackPanel Spacing="8" Margin="0,8,0,4">
+                <Button x:Name="IdlePolicyExpander" Click="ToggleIdleSettings" Height="44" Padding="14,0" Theme="{StaticResource GhostRowButton}">
+                  <Grid>
+                    <TextBlock x:Name="IdlePolicyLabel" VerticalAlignment="Center" />
+                    <Path x:Name="IdlePolicyChevron" Data="M0 0 L5 5 L10 0" Stroke="#73FFFFFF" StrokeThickness="1.5"
+                          HorizontalAlignment="Right" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+                <StackPanel x:Name="IdlePolicyPanel" Spacing="8" Margin="14,0,14,8" IsVisible="False">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                       <TextBlock x:Name="IdleDesktopLabel" VerticalAlignment="Center" />
-                      <ComboBox x:Name="IdleDesktop" Grid.Column="1" MinWidth="108" />
+                      <ComboBox x:Name="IdleDesktop" Grid.Column="1" MinWidth="108" Theme="{StaticResource DarkCombo}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                       <TextBlock x:Name="IdleGameLabel" VerticalAlignment="Center" />
-                      <ComboBox x:Name="IdleGame" Grid.Column="1" MinWidth="108" />
+                      <ComboBox x:Name="IdleGame" Grid.Column="1" MinWidth="108" Theme="{StaticResource DarkCombo}" />
                     </Grid>
-                    <CheckBox x:Name="IdleCharging" />
-                    <Button x:Name="IdleSave" Click="SaveIdlePolicy" />
-                    <TextBlock x:Name="IdleFeedback" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Expander>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock x:Name="IdleChargingLabel" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      <CheckBox x:Name="IdleCharging" Grid.Column="1" Theme="{StaticResource IOSGreenSwitch}" />
+                    </Grid>
+                    <TextBlock x:Name="IdleFeedback" TextWrapping="Wrap" IsVisible="False" />
+                    <Button x:Name="IdleSave" Click="SaveIdlePolicy" Theme="{StaticResource CompactButton}" IsVisible="False" />
+                </StackPanel>
                 <TextBlock x:Name="ConnectionDetail" Margin="14,5" TextWrapping="Wrap" />
-                <Button x:Name="ConnectionActionButton" Margin="14,0,14,5" Click="RunConnectionAction" />
+                <Button x:Name="ConnectionActionButton" Margin="14,0,14,5" Click="RunConnectionAction" Theme="{StaticResource CompactButton}" />
                 <Button x:Name="AdvancedButton" Click="ToggleAdvanced" Height="44" Padding="14,0" Theme="{StaticResource GhostRowButton}">
                   <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

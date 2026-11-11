@@ -35,7 +35,16 @@ internal static class MigrationQa
    report.Add("14 controller state/mode combinations");
    main.Display(new BridgeState{State="Active",Enabled=true,BatteryPercent=85,Charging=true});
    await Task.Delay(100);
+   main.Display(new BridgeState{State="Paused",ReasonCode="emulation_paused",AutoDisconnectEnabled=true,IdlePolicy=new(1,5,15,false)});
+   main.FindControl<Button>("IdlePolicyExpander")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   await Task.Delay(50);
+   if(!main.FindControl<StackPanel>("IdlePolicyPanel")!.IsVisible ||
+      main.FindControl<Button>("IdleSave")!.IsVisible ||
+      main.FindControl<Button>("ConnectionActionButton")!.IsVisible)
+    throw new Exception("Idle policy panel shows redundant actions");
    Capture(main,Path.Combine(folder,"main.png"));
+   main.FindControl<Button>("IdlePolicyExpander")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   report.Add("Idle settings disclosure and automatic save controls");
    var window=main.CreateInputSettingsWindow();window.Show(main);await Task.Delay(100);
    var tabs=window.FindControl<TabControl>("SettingsTabs")!;
    if(tabs.ItemCount!=6)throw new Exception("Missing settings tabs");

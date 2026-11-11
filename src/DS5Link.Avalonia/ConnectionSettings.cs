@@ -7,14 +7,16 @@ internal sealed partial class MainWindow
     IdlePolicy? shownPolicy;
     bool syncingIdlePolicy;
     ConnectionAction connectionAction;
+    bool idleSaveFailed;
 
     void InitializeConnectionSettings()
     {
-        IdlePolicyExpander.Header = L.T("Настройки автоотключения");
+        IdlePolicyLabel.Text = L.T("Настройки автоотключения");
         IdleDesktopLabel.Text = L.T("На рабочем столе");
         IdleGameLabel.Text = L.T("В игре");
-        IdleCharging.Content = L.T("Не отключать во время зарядки");
-        IdleSave.Content = L.T("Сохранить");
+        IdleChargingLabel.Text = L.T("Не отключать во время зарядки");
+        AutomationProperties.SetName(IdleCharging, IdleChargingLabel.Text);
+        IdleSave.Content = L.T("Повторить");
         AutomationProperties.SetName(IdleDesktop, IdleDesktopLabel.Text);
         AutomationProperties.SetName(IdleGame, IdleGameLabel.Text);
         var labels = IdleMinutes.Select(minutes => minutes == 0 ? L.T("Никогда") : L.F("{0} мин", minutes)).ToArray();
@@ -30,6 +32,12 @@ internal sealed partial class MainWindow
             SaveIdlePolicy(this, new RoutedEventArgs());
         };
         Closed += (_, _) => idleSaveTimer.Stop();
+    }
+
+    void ToggleIdleSettings(object? sender, RoutedEventArgs e)
+    {
+        IdlePolicyPanel.IsVisible = !IdlePolicyPanel.IsVisible;
+        IdlePolicyChevron.RenderTransform = new RotateTransform(IdlePolicyPanel.IsVisible ? 180 : 0);
     }
 
     void QueueIdleSave()
@@ -53,6 +61,8 @@ internal sealed partial class MainWindow
         }
         var editable = policy?.SchemaVersion == 1 && state.AutoDisconnectEnabled == true && !commanding && !exitRequested && !exiting;
         IdleDesktop.IsEnabled = IdleGame.IsEnabled = IdleCharging.IsEnabled = IdleSave.IsEnabled = editable;
+        IdleSave.IsVisible = idleSaveFailed && policy != null;
+        IdleFeedback.IsVisible = idleSaveFailed || policy == null || state.IdlePolicyWarning != null;
         if (!commanding && state.IdlePolicyWarning != null)
             IdleFeedback.Text = L.T("Файл таймеров повреждён. Действуют стандартные интервалы.");
         else if (!commanding && policy == null)
@@ -68,7 +78,6 @@ internal sealed partial class MainWindow
         ConnectionActionButton.IsEnabled = !commanding && !exitRequested;
         ConnectionActionButton.Content = connectionAction switch
         {
-            ConnectionAction.Enable => L.T("Включить эмуляцию"),
             ConnectionAction.Recover => L.T("Восстановить HidHide"),
             _ => L.T("Диагностика")
         };
@@ -81,7 +90,6 @@ internal sealed partial class MainWindow
     {
         switch (connectionAction)
         {
-            case ConnectionAction.Enable: await Command("enable"); break;
             case ConnectionAction.Recover: await Command("recover"); break;
             case ConnectionAction.Diagnostics: SetDiagnosticsOpen(true); break;
         }
@@ -98,13 +106,15 @@ internal sealed partial class MainWindow
         ++stateGeneration;
         Display(current);
         IdleFeedback.Text = L.T("Сохранение…");
+        IdleFeedback.IsVisible = true;
         try
         {
             Display(await BridgeClient.SetIdlePolicyAsync(draft));
-            IdleFeedback.Text = L.T("Изменения сохранены");
+            idleSaveFailed = false;
         }
         catch (Exception)
         {
+            idleSaveFailed = true;
             IdleFeedback.Text = L.T("Не удалось сохранить интервалы. Повторите попытку.");
         }
         finally

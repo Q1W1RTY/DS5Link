@@ -823,7 +823,7 @@ index a951df6..91241d5 100644
  using vds::win::win32_error_message;
  
 diff --git a/src/platform/win32/vdsd.cc b/src/platform/win32/vdsd.cc
-index 34839ba..259e51f 100644
+index 34839ba..21dfd6a 100644
 --- a/src/platform/win32/vdsd.cc
 +++ b/src/platform/win32/vdsd.cc
 @@ -1,3 +1,4 @@
@@ -1690,7 +1690,7 @@ index 34839ba..259e51f 100644
    UniqueHandle retry_timer(CreateWaitableTimerExA(
        nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
        TIMER_MODIFY_STATE | SYNCHRONIZE));
-@@ -2565,8 +2504,56 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2565,8 +2504,52 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    std::atomic_uint32_t trace_flags = 0;
    bool reload_requested = false;
    bool scan_requested = true;
@@ -1732,10 +1732,6 @@ index 34839ba..259e51f 100644
 +  bool recovering=false;
 +  auto disconnect_in_progress=[&]{return pending_disconnect.has_value() || disconnect_task.valid();};
 +  auto queue_bluetooth_disconnect=[&](std::string address, DisconnectReason reason){
-+    if(reason==DisconnectReason::Manual){
-+      vds::write_file_atomic(paused_path,"paused\n");
-+      bridge_enabled=false;
-+    }
 +    disconnect_reason=reason;
 +    pending_disconnect=std::move(address);
 +    disconnect_failed=false;
@@ -1747,7 +1743,7 @@ index 34839ba..259e51f 100644
    logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
               "Windows bridge supervisor started pipe=" + options.pipe);
  
-@@ -2596,6 +2583,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2596,6 +2579,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    };
  
    while (!g_stop_requested) {
@@ -1755,7 +1751,7 @@ index 34839ba..259e51f 100644
      bool worker_removed = false;
      for (auto worker = workers.begin(); worker != workers.end();) {
        if ((*worker)->done.load()) {
-@@ -2603,6 +2591,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2603,6 +2587,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            (*worker)->thread.join();
          }
          if (!(*worker)->last_error.empty()) {
@@ -1763,7 +1759,7 @@ index 34839ba..259e51f 100644
            vds::record_vdsd_worker_failure(
                worker_failure_backoffs, (*worker)->address,
                Clock::now() + kBridgeWorkerFailureRetryDelay);
-@@ -2610,13 +2599,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2610,13 +2595,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          worker = workers.erase(worker);
          worker_removed = true;
        } else {
@@ -1805,7 +1801,7 @@ index 34839ba..259e51f 100644
      if (reload_requested) {
        scan_requested = true;
      }
-@@ -2628,24 +2645,68 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2628,24 +2641,68 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        scan_requested = true;
      }
  
@@ -1877,7 +1873,7 @@ index 34839ba..259e51f 100644
                detail = kWindowsVirtualPortProviderUnavailable;
              } else {
                detail = kWindowsHidHideProviderUnavailable;
-@@ -2664,13 +2725,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2664,13 +2721,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          const std::vector<HidBluetoothDevice> hid_devices =
@@ -1895,7 +1891,7 @@ index 34839ba..259e51f 100644
              logger.log(
                  vds::LogScope::Daemon, vds::LogLevel::Info,
                  "Windows bridge worker retiring address=" + worker->address +
-@@ -2688,6 +2750,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2688,6 +2746,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          for (const auto &config : db.controllers) {
@@ -1903,7 +1899,7 @@ index 34839ba..259e51f 100644
            if (!vds::consume_vdsd_worker_retry(worker_failure_backoffs,
                                                config.address, Clock::now())) {
              continue;
-@@ -2727,7 +2790,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2727,7 +2786,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            vds::forget_vdsd_warning_state(port_binding_warned_states,
                                           config.address);
            std::string discovery_error;
@@ -1913,7 +1909,7 @@ index 34839ba..259e51f 100644
                config.address, hid_devices, &discovery_error);
            if (!connected_device) {
              if (vds::remember_vdsd_warning_state(
-@@ -2743,7 +2807,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2743,7 +2803,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            const vds::VdsdWorkerLaunchDecision launch =
                vds::select_vdsd_worker_launch_decision(
                    config, available_virtual_ports(), reserved_ports,
@@ -1922,7 +1918,7 @@ index 34839ba..259e51f 100644
                    reserved_device_addresses);
            if (launch.status ==
                vds::VdsdWorkerLaunchStatus::VirtualPortProviderUnavailable) {
-@@ -2785,11 +2849,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2785,11 +2845,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            BridgeWorker *worker_ptr = worker.get();
            worker->thread = std::thread([worker_config = launch.config,
                                          device_address = launch.device_address,
@@ -1936,7 +1932,7 @@ index 34839ba..259e51f 100644
              SetEvent(worker_ptr->done_event.get());
            });
            logger.log(
-@@ -2814,7 +2878,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2814,7 +2874,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
      }
  
      const auto now = Clock::now();
@@ -1945,7 +1941,7 @@ index 34839ba..259e51f 100644
      if (!worker_failure_backoffs.empty()) {
        const auto next_retry = std::min_element(
            worker_failure_backoffs.begin(), worker_failure_backoffs.end(),
-@@ -2824,7 +2888,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2824,7 +2884,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        if (next_retry != worker_failure_backoffs.end()) {
          if (next_retry->retry_after <= now) {
            scan_requested = true;
@@ -1954,7 +1950,7 @@ index 34839ba..259e51f 100644
          }
          retry_after =
              retry_after
-@@ -2879,6 +2943,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2879,6 +2939,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        wait_handles.push_back(target.handle);
      }
  
@@ -1962,7 +1958,7 @@ index 34839ba..259e51f 100644
      const DWORD wait_result =
          WaitForMultipleObjects(static_cast<DWORD>(wait_handles.size()),
                                 wait_handles.data(), FALSE, INFINITE);
-@@ -2898,7 +2963,164 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2898,7 +2959,165 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        g_stop_requested = true;
        break;
      case WaitKind::Control:
@@ -2110,7 +2106,8 @@ index 34839ba..259e51f 100644
 +              else if(recovering && bridge_enabled && !dependency_unavailable)reason="recovering";
 +              else if(phase=="Connecting")reason="connecting";
 +              else if(bridge_enabled && dependency_unavailable)reason="dependency_unavailable";
-+              else if(bluetooth_disconnected && disconnect_reason==DisconnectReason::IdleTimeout)reason="idle_timeout";
++              else if(bluetooth_disconnected && disconnect_reason)
++                reason=*disconnect_reason==DisconnectReason::IdleTimeout?"idle_timeout":"manual_disconnect";
 +              else if(phase=="Error")reason="connection_error";
 +              state["reasonCode"]=reason;
 +              state["error"]=!blocked_reason.empty()?(blocked_reason=="USB"?"Подключён USB DualSense. Эмуляция приостановлена.":"DSX запущен. Эмуляция приостановлена до его закрытия."):state["state"]=="Active"?"":last_error;if(state["state"]=="Active" && state["physicalVisible"]==true)state["error"]="Xbox работает по USB. DualSense также виден игре: HidHide содержит настройки других устройств.";state["usbConnected"]=usb_connected;state["transport"]=usb_connected?"USB":"Bluetooth";state["rssi"]=nullptr;
@@ -2127,7 +2124,7 @@ index 34839ba..259e51f 100644
          std::uint32_t current_trace_flags = trace_flags.load();
          const std::string reply = handle_supervisor_control_command(
              command, workers, options.db_path, current_trace_flags,
-@@ -2935,6 +3157,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2935,6 +3154,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
    try {
      g_stop_requested = false;
      const Options options = parse_platform_args(argc, argv);
@@ -2135,7 +2132,7 @@ index 34839ba..259e51f 100644
      UniqueHandle stop_event(CreateEventA(nullptr, TRUE, FALSE, nullptr));
      if (!stop_event) {
        throw std::runtime_error("failed to create stop event: " +
-@@ -2946,26 +3169,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2946,26 +3166,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
      }
  
      vds::Logger logger(options.log_path);
@@ -2179,7 +2176,7 @@ index 34839ba..259e51f 100644
        if (service_mode) {
          update_service_status(SERVICE_RUNNING);
          logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
-@@ -3011,7 +3237,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
+@@ -3011,7 +3234,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
  
    update_service_status(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
    g_service_exit_code = static_cast<DWORD>(
@@ -2188,7 +2185,7 @@ index 34839ba..259e51f 100644
    update_service_status(SERVICE_STOPPED, g_service_exit_code == 0
                                               ? ERROR_SUCCESS
                                               : ERROR_SERVICE_SPECIFIC_ERROR);
-@@ -3035,6 +3261,7 @@ bool dispatch_service_if_needed() {
+@@ -3035,6 +3258,7 @@ bool dispatch_service_if_needed() {
  }
  
  int main(int argc, char **argv) {

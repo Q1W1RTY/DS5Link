@@ -302,5 +302,7 @@
   "Не удалось запустить виртуальный контроллер. Проверьте драйверы.": "The virtual controller could not start. Check the drivers.",
   "Нет связи со службой DS5Link.": "The DS5Link service is unavailable.",
   "Требуется восстановление HidHide.": "HidHide recovery is required.",
+  "Повторить": "Retry",
+  "Нажмите PS для подключения.": "Press PS to reconnect.",
   "Не удалось подключить контроллер.": "Could not connect the controller."
 }
