@@ -38,6 +38,10 @@ try {
     if(!$reply.ok -or $reply.payload.autoDisconnectEnabled -ne $false){throw 'Auto-disconnect could not be disabled'}
     $reply=Request '{"protocolVersion":1,"id":"idle-invalid","command":"setAutoDisconnect","options":{"enabled":"true"}}'
     if($reply.ok){throw 'Auto-disconnect accepted an invalid setting'}
+    $reply=Request '{"protocolVersion":1,"id":"policy-save","command":"setIdlePolicy","options":{"schemaVersion":1,"desktopMinutes":1,"gameMinutes":0,"keepConnectedWhileCharging":true}}'
+    if(!$reply.ok -or $reply.payload.idlePolicy.desktopMinutes -ne 1 -or $reply.payload.autoDisconnectEnabled -ne $false -or $reply.payload.reasonCode -ne 'emulation_paused'){throw 'Idle policy save failed'}
+    $reply=Request '{"protocolVersion":1,"id":"policy-invalid","command":"setIdlePolicy","options":{"schemaVersion":1,"desktopMinutes":5.0,"gameMinutes":0,"keepConnectedWhileCharging":true}}'
+    if($reply.ok -or $reply.error -ne 'INVALID_IDLE_POLICY'){throw 'Invalid idle policy accepted'}
     $reply=Request '{"protocolVersion":2,"id":"two","command":"enable"}'
     if($reply.ok -or $reply.error -ne 'PROTOCOL_VERSION_MISMATCH'){throw 'Version mismatch accepted'}
     $reply=Request '{"protocolVersion":1,"id":"three","command":"pause"}'
@@ -101,6 +105,8 @@ try {
     $process=Start-Process $Engine -ArgumentList @('--db-path',('"'+$database+'"'),'--log',('"'+(Join-Path $run 'restart-log.txt')+'"'),'--pipe',('"\\.\pipe\'+$name+'"')) -WindowStyle Hidden -PassThru -RedirectStandardError (Join-Path $run 'restart-stderr.txt')
     $env:DS5LINK_MOCK_HIDHIDE_ACCESS_OUTPUT=$previousAccessOutput
     Start-Sleep -Milliseconds 1000
+    $reply=Request '{"protocolVersion":1,"id":"policy-after-restart","command":"getState"}'
+    if(!$reply.ok -or $reply.payload.idlePolicy.desktopMinutes -ne 1 -or $reply.payload.idlePolicy.gameMinutes -ne 0 -or !$reply.payload.idlePolicy.keepConnectedWhileCharging -or $reply.payload.autoDisconnectEnabled){throw 'Idle policy or legacy switch lost after restart'}
     $reply=Request '{"protocolVersion":1,"id":"startup-recovery-failure","command":"getState"}'
     if(!$reply.ok -or !$reply.payload.recoveryPending -or $reply.payload.state -ne 'Error'){throw 'Startup recovery failure prevented diagnostic control access'}
     if($reply.payload.autoDisconnectEnabled -ne $false){throw 'Auto-disconnect setting lost on restart'}

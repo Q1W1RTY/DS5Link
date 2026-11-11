@@ -11,9 +11,18 @@ internal sealed partial class MainWindow {
   menu.Items.Add(L.T("Открыть DS5Link"),null,(_,_)=>Open());
   menu.Items.Add(L.T("Настройки контроллера"),null,(_,_)=>{Open();OpenInputSettings();});
   menu.Items.Add(new Forms.ToolStripSeparator());
-  menu.Items.Add(L.T("Включить / выключить эмуляцию"),null,async(_,_)=>await Command(current.Enabled?"pause":"enable"));
-  menu.Items.Add(L.T("Переподключить"),null,async(_,_)=>await Command("reconnect"));
-  menu.Items.Add(L.T("Отключить геймпад"),null,async(_,_)=>await Command("disconnect"));
+  var toggle=menu.Items.Add(L.T("Включить / выключить эмуляцию"),null,async(_,_)=>await Command(current.Enabled?"pause":"enable"));
+  var reconnect=menu.Items.Add(L.T("Переподключить"),null,async(_,_)=>await Command("reconnect"));
+  var disconnect=menu.Items.Add(L.T("Отключить геймпад"),null,async(_,_)=>await Command("disconnect"));
+  menu.Opening+=(_,_)=>{
+   var ready=!commanding && !exitRequested && !exiting;
+   toggle.Enabled=ready && CanRunConnectionCommand(current.Enabled?"pause":"enable")
+       && (current.Enabled || !current.UsbConnected || current.Mode=="xbox");
+   reconnect.Enabled=ready && current.Enabled && current.State is not ("Wired" or "Conflict")
+       && CanRunConnectionCommand("reconnect");
+   disconnect.Enabled=ready && !current.BluetoothDisconnected && !current.UsbConnected
+       && current.State is not ("Wired" or "Conflict" or "Error") && CanRunConnectionCommand("disconnect");
+  };
   startupMenu=new Forms.ToolStripMenuItem(L.T("Автозапуск")){Checked=StartupSwitch.IsChecked==true,CheckOnClick=true};
   startupMenu.CheckedChanged+=(_,_)=>ChangeStartup(startupMenu.Checked);menu.Items.Add(startupMenu);
   menu.Items.Add(L.T("Диагностика"),null,(_,_)=>{Open();SetDiagnosticsOpen(true);});

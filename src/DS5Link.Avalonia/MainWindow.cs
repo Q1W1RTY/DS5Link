@@ -40,6 +40,7 @@ internal sealed partial class MainWindow : Window {
     public MainWindow(bool preview) {
         this.preview = preview;
         InitializeComponent();
+        InitializeConnectionSettings();
 
         UpdateLanguageButton();
         InitializeInputControls();
@@ -70,8 +71,8 @@ internal sealed partial class MainWindow : Window {
                 Hide();
             }
         };
-        PropertyChanged += (_, _) => {
-            if (WindowState == WindowState.Minimized) Hide();
+        PropertyChanged += (_, e) => {
+            if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized) Hide();
         };
 
         if (preview) {
@@ -107,6 +108,7 @@ internal sealed partial class MainWindow : Window {
 
     public void Display(BridgeState state) {
         current = state;
+        DisplayConnectionSettings(state);
         AutoDisconnectSwitch.IsChecked = state.AutoDisconnectEnabled == true;
         AutoDisconnectSwitch.IsEnabled = state.AutoDisconnectEnabled.HasValue && !commanding && !exiting && !exitRequested;
         SyncAudioEffects(state);
@@ -161,7 +163,7 @@ internal sealed partial class MainWindow : Window {
         // Emulation state
         bool emuActive = state.Enabled;
         MainEmuSwitch.IsChecked = emuActive;
-        MainEmuSwitch.IsEnabled = !commanding && !exitRequested && (state.Enabled || !state.UsbConnected || state.Mode=="xbox");
+        MainEmuSwitch.IsEnabled = (state.Enabled || state.State != "Stopping") && !commanding && !exitRequested && (state.Enabled || !state.UsbConnected || state.Mode=="xbox");
         if (emuActive) {
             EmuBadge.Background = BlueBrush;
             EmuTitle.Text = state.State switch {
@@ -332,8 +334,8 @@ internal sealed partial class MainWindow : Window {
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     internal void Open() {
-        Show();
         WindowState = WindowState.Normal;
+        Show();
         Activate();
     }
 
@@ -387,6 +389,9 @@ internal sealed partial class MainWindow : Window {
             if (generation == stateGeneration && !commanding)
                 Display(current with {
                     State = "Error",
+                    ReasonCode = "service_unavailable",
+                    IdlePolicy = null,
+                    AutoDisconnectEnabled = null,
                     Error = L.T("Нет связи со службой. Ожидаем автоматическое восстановление…"),
                     BatteryPercent = null,
                     Charging = false,
@@ -405,7 +410,7 @@ internal sealed partial class MainWindow : Window {
     }
 
     async Task Command(string command, bool? autoDisconnect = null) {
-        if (commanding || exiting || exitRequested) return;
+        if (commanding || exiting || exitRequested || !CanRunConnectionCommand(command)) return;
         commanding = true;
         if (!autoDisconnect.HasValue) {
             inputCursor.Reset();

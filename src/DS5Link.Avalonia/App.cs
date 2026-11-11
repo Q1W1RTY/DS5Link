@@ -37,7 +37,11 @@ internal sealed class App:Application
    var settings=preview?new Settings():Settings.Load();L.SetLanguage(settings.Language);
    desktop.ShutdownMode=preview?ShutdownMode.OnMainWindowClose:ShutdownMode.OnExplicitShutdown;
    var main=new MainWindow(preview);
-   if(arguments.Contains("--ui-qa"))main.Opened+=async(_,_)=>await MigrationQa.Run(main);
+   if(arguments.Contains("--ui-qa"))main.Opened+=RunQa;
+   async void RunQa(object? sender,EventArgs e){
+    main.Opened-=RunQa;
+    await MigrationQa.Run(main);
+   }
    if(preview||!IsBackgroundLaunch){
     desktop.MainWindow=main;
     if(!preview && settings.FirstRun){settings.FirstRun=false;settings.Save();}

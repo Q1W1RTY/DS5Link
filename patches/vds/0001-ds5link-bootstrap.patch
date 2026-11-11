@@ -823,7 +823,7 @@ index a951df6..91241d5 100644
  using vds::win::win32_error_message;
  
 diff --git a/src/platform/win32/vdsd.cc b/src/platform/win32/vdsd.cc
-index 34839ba..5ce023e 100644
+index 34839ba..259e51f 100644
 --- a/src/platform/win32/vdsd.cc
 +++ b/src/platform/win32/vdsd.cc
 @@ -1,3 +1,4 @@
@@ -1059,9 +1059,9 @@ index 34839ba..5ce023e 100644
 +      {
 +        std::lock_guard lock(g_telemetry.mutex);
 +        g_telemetry.last_input=Clock::now();g_telemetry.metrics.add(g_telemetry.last_input);
-+        g_telemetry.bluetooth_idle.observe(*report,g_telemetry.last_input);
-+        const auto battery=ds5link::decode_battery_status((*report)[53]);
++                const auto battery=ds5link::decode_battery_status((*report)[53]);
 +        g_telemetry.battery=battery.percent;g_telemetry.charging=battery.charging;
++        g_telemetry.bluetooth_idle.observe(*report,g_telemetry.last_input,battery.charging);
 +        g_telemetry.headphones=((*report)[54]&1)!=0;
 +      }
 +      ds5link::input::process(state.input_processor,*report);
@@ -1272,9 +1272,9 @@ index 34839ba..5ce023e 100644
 +      {
 +        std::lock_guard lock(g_telemetry.mutex);
 +        g_telemetry.last_input=Clock::now();g_telemetry.metrics.add(g_telemetry.last_input);
-+        g_telemetry.bluetooth_idle.observe(*report,g_telemetry.last_input);
-+        auto battery=ds5link::decode_battery_status((*report)[53]);
++                auto battery=ds5link::decode_battery_status((*report)[53]);
 +        g_telemetry.battery=battery.percent;g_telemetry.charging=battery.charging;
++        g_telemetry.bluetooth_idle.observe(*report,g_telemetry.last_input,battery.charging);
 +        g_telemetry.headphones=((*report)[54]&1)!=0;
 +      }
 +      ds5link::input::process(input_processor,*report);
@@ -1690,7 +1690,7 @@ index 34839ba..5ce023e 100644
    UniqueHandle retry_timer(CreateWaitableTimerExA(
        nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
        TIMER_MODIFY_STATE | SYNCHRONIZE));
-@@ -2565,8 +2504,39 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2565,8 +2504,56 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    std::atomic_uint32_t trace_flags = 0;
    bool reload_requested = false;
    bool scan_requested = true;
@@ -1713,13 +1713,30 @@ index 34839ba..5ce023e 100644
 +  auto game_in_foreground_until=Clock::time_point::min();
 +  const auto auto_disconnect_disabled_path=options.db_path+".auto-disconnect-disabled";
 +  bool auto_disconnect_enabled=!std::filesystem::exists(auto_disconnect_disabled_path);
++  const auto idle_policy_path=options.db_path+".idle-policy.json";
++  ds5link::IdlePolicy idle_policy;
++  bool idle_policy_warning=false;
++  try {
++    if(std::filesystem::exists(idle_policy_path)) {
++      std::ifstream file(idle_policy_path);
++      idle_policy=ds5link::IdlePolicy::parse(nlohmann::json::parse(file));
++    }
++  } catch(const std::exception& error) {
++    idle_policy_warning=true;
++    logger.log(vds::LogScope::Daemon,vds::LogLevel::Warn,
++               std::string("Cannot load idle policy: ")+error.what());
++  }
 +  enum class DisconnectReason { IdleTimeout, Manual };
++  std::optional<DisconnectReason> disconnect_reason;
++  bool dependency_unavailable=false;
++  bool recovering=false;
 +  auto disconnect_in_progress=[&]{return pending_disconnect.has_value() || disconnect_task.valid();};
 +  auto queue_bluetooth_disconnect=[&](std::string address, DisconnectReason reason){
 +    if(reason==DisconnectReason::Manual){
 +      vds::write_file_atomic(paused_path,"paused\n");
 +      bridge_enabled=false;
 +    }
++    disconnect_reason=reason;
 +    pending_disconnect=std::move(address);
 +    disconnect_failed=false;
 +    bluetooth_disconnected=false;
@@ -1730,7 +1747,7 @@ index 34839ba..5ce023e 100644
    logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
               "Windows bridge supervisor started pipe=" + options.pipe);
  
-@@ -2596,6 +2566,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2596,6 +2583,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    };
  
    while (!g_stop_requested) {
@@ -1738,7 +1755,7 @@ index 34839ba..5ce023e 100644
      bool worker_removed = false;
      for (auto worker = workers.begin(); worker != workers.end();) {
        if ((*worker)->done.load()) {
-@@ -2603,6 +2574,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2603,6 +2591,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            (*worker)->thread.join();
          }
          if (!(*worker)->last_error.empty()) {
@@ -1746,13 +1763,13 @@ index 34839ba..5ce023e 100644
            vds::record_vdsd_worker_failure(
                worker_failure_backoffs, (*worker)->address,
                Clock::now() + kBridgeWorkerFailureRetryDelay);
-@@ -2610,13 +2582,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2610,13 +2599,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          worker = workers.erase(worker);
          worker_removed = true;
        } else {
 +        if(!(*worker)->stop_requested && Clock::now()-(*worker)->started>std::chrono::seconds(15)){
 +          std::lock_guard lock(g_telemetry.mutex);
-+          if(g_telemetry.last_input==Clock::time_point{} || Clock::now()-g_telemetry.last_input>std::chrono::seconds(5)){(*worker)->stop_requested=true;last_error="Контроллер не передаёт ввод. Переподключаем автоматически…";}
++          if(g_telemetry.last_input==Clock::time_point{} || Clock::now()-g_telemetry.last_input>std::chrono::seconds(5)){(*worker)->stop_requested=true;recovering=true;last_error="Контроллер не передаёт ввод. Переподключаем автоматически…";}
 +        }
 +        if((*worker)->stop_requested){
 +          if((*worker)->stop_since==Clock::time_point{})(*worker)->stop_since=Clock::now();
@@ -1788,7 +1805,7 @@ index 34839ba..5ce023e 100644
      if (reload_requested) {
        scan_requested = true;
      }
-@@ -2628,24 +2628,66 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2628,24 +2645,68 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        scan_requested = true;
      }
  
@@ -1815,7 +1832,8 @@ index 34839ba..5ce023e 100644
 +          if(!worker.done && !worker.stop_requested &&
 +             worker.device_address==db.controllers.front().address){
 +            std::lock_guard lock(g_telemetry.mutex);
-+            idle=g_telemetry.bluetooth_idle.expired(Clock::now(),game_in_foreground_until);
++            idle=g_telemetry.bluetooth_idle.expired(Clock::now(),game_in_foreground_until,
++                                                    idle_policy,g_telemetry.charging);
 +          }
 +          if(idle){
 +            queue_bluetooth_disconnect(worker.device_address,DisconnectReason::IdleTimeout);
@@ -1848,6 +1866,7 @@ index 34839ba..5ce023e 100644
 -            !enabled_ports.empty() && vds::win::usbip::client_available() &&
 +            !enabled_ports.empty() && (!workers.empty() || (mode=="xbox" ? ds5link::XboxTarget::available() : vds::win::usbip::client_available())) &&
              vds::win::hidhide::provider_available();
++        dependency_unavailable=!virtual_port_provider_is_available;
          if (!virtual_port_provider_is_available) {
 +          last_error=mode=="xbox"?"ViGEmBus unavailable. Install the Xbox driver using DS5Link Setup.":"USBip or HidHide unavailable. Run DS5Link Setup.";
            if (!virtual_port_provider_warned) {
@@ -1858,7 +1877,7 @@ index 34839ba..5ce023e 100644
                detail = kWindowsVirtualPortProviderUnavailable;
              } else {
                detail = kWindowsHidHideProviderUnavailable;
-@@ -2664,13 +2706,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2664,13 +2725,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          const std::vector<HidBluetoothDevice> hid_devices =
@@ -1876,7 +1895,7 @@ index 34839ba..5ce023e 100644
              logger.log(
                  vds::LogScope::Daemon, vds::LogLevel::Info,
                  "Windows bridge worker retiring address=" + worker->address +
-@@ -2688,6 +2731,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2688,6 +2750,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          for (const auto &config : db.controllers) {
@@ -1884,7 +1903,7 @@ index 34839ba..5ce023e 100644
            if (!vds::consume_vdsd_worker_retry(worker_failure_backoffs,
                                                config.address, Clock::now())) {
              continue;
-@@ -2727,7 +2771,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2727,7 +2790,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            vds::forget_vdsd_warning_state(port_binding_warned_states,
                                           config.address);
            std::string discovery_error;
@@ -1894,7 +1913,7 @@ index 34839ba..5ce023e 100644
                config.address, hid_devices, &discovery_error);
            if (!connected_device) {
              if (vds::remember_vdsd_warning_state(
-@@ -2743,7 +2788,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2743,7 +2807,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            const vds::VdsdWorkerLaunchDecision launch =
                vds::select_vdsd_worker_launch_decision(
                    config, available_virtual_ports(), reserved_ports,
@@ -1903,7 +1922,7 @@ index 34839ba..5ce023e 100644
                    reserved_device_addresses);
            if (launch.status ==
                vds::VdsdWorkerLaunchStatus::VirtualPortProviderUnavailable) {
-@@ -2785,11 +2830,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2785,11 +2849,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            BridgeWorker *worker_ptr = worker.get();
            worker->thread = std::thread([worker_config = launch.config,
                                          device_address = launch.device_address,
@@ -1917,15 +1936,7 @@ index 34839ba..5ce023e 100644
              SetEvent(worker_ptr->done_event.get());
            });
            logger.log(
-@@ -2798,6 +2843,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
-                   " port=" + std::to_string(launch.port) +
-                   " device_address=" + launch.device_address);
-           workers.push_back(std::move(worker));
-+          if(disconnect_failed){disconnect_failed=false;last_error.clear();}
-           reserved_ports.push_back(launch.port);
-           reserved_device_addresses.push_back(launch.device_address);
-         }
-@@ -2814,7 +2860,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2814,7 +2878,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
      }
  
      const auto now = Clock::now();
@@ -1934,7 +1945,7 @@ index 34839ba..5ce023e 100644
      if (!worker_failure_backoffs.empty()) {
        const auto next_retry = std::min_element(
            worker_failure_backoffs.begin(), worker_failure_backoffs.end(),
-@@ -2824,7 +2870,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2824,7 +2888,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        if (next_retry != worker_failure_backoffs.end()) {
          if (next_retry->retry_after <= now) {
            scan_requested = true;
@@ -1943,7 +1954,7 @@ index 34839ba..5ce023e 100644
          }
          retry_after =
              retry_after
-@@ -2879,6 +2925,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2879,6 +2943,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        wait_handles.push_back(target.handle);
      }
  
@@ -1951,7 +1962,7 @@ index 34839ba..5ce023e 100644
      const DWORD wait_result =
          WaitForMultipleObjects(static_cast<DWORD>(wait_handles.size()),
                                 wait_handles.data(), FALSE, INFINITE);
-@@ -2898,7 +2945,126 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2898,7 +2963,164 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        g_stop_requested = true;
        break;
      case WaitKind::Control:
@@ -1998,6 +2009,21 @@ index 34839ba..5ce023e 100644
 +              }
 +              if(action=="setInputOptions") {
 +                ds5link::input::update(request.at("options"));
++              } else if(action=="setIdlePolicy") {
++                ds5link::IdlePolicy next;
++                try { next=ds5link::IdlePolicy::parse(request.at("options")); }
++                catch(const std::exception&) { throw std::runtime_error("INVALID_IDLE_POLICY"); }
++                if(next!=idle_policy || idle_policy_warning) {
++                  try { vds::write_file_atomic(idle_policy_path,next.json().dump(2)+"\n"); }
++                  catch(const std::exception& error) {
++                    logger.log(vds::LogScope::Daemon,vds::LogLevel::Error,error.what());
++                    throw std::runtime_error("IDLE_POLICY_SAVE_FAILED");
++                  }
++                  idle_policy=next;
++                  idle_policy_warning=false;
++                  std::lock_guard lock(g_telemetry.mutex);
++                  g_telemetry.bluetooth_idle={};
++                }
 +              } else if(action=="setAutoDisconnect") {
 +                const auto enabled=request.at("options").at("enabled").get<bool>();
 +                if(enabled!=auto_disconnect_enabled){
@@ -2024,11 +2050,14 @@ index 34839ba..5ce023e 100644
 +                if(enable)std::filesystem::remove(paused_path);
 +                else {std::ofstream file(paused_path);file<<"paused\n";if(!file)throw std::runtime_error("Cannot save bridge state");}
 +                bridge_enabled=enable;scan_requested=true;disconnect_failed=false;last_error.clear();
-+                if(enable)bluetooth_disconnected=false;
++                if(!disconnect_in_progress()) {
++                  bluetooth_disconnected=false;disconnect_reason.reset();recovering=false;
++                }
 +              } else if(action=="reconnect") {
 +                if(!bridge_enabled)throw std::runtime_error("BRIDGE_PAUSED");
 +                for(auto& worker:workers)worker->stop_requested=true;
 +                worker_failure_backoffs.clear();last_error.clear();scan_requested=true;
++                bluetooth_disconnected=false;disconnect_reason.reset();recovering=false;
 +              } else if(action=="selectController") {
 +                if(bridge_enabled || !workers.empty() || std::filesystem::exists(options.db_path+".hidhide-recovery.json"))throw std::runtime_error("Pause and recover before changing controller");
 +                auto targets=list_windows_controller_targets();
@@ -2053,6 +2082,10 @@ index 34839ba..5ce023e 100644
 +                std::lock_guard lock(g_telemetry.mutex);const auto now=Clock::now();
 +                const bool running=std::any_of(workers.begin(),workers.end(),[](const auto& worker){return !worker->stop_requested && !worker->done;});
 +                const bool active=running && g_telemetry.last_input!=Clock::time_point{} && now-g_telemetry.last_input<std::chrono::seconds(2);
++                if(active && !recovery_pending && !dependency_unavailable && blocked_reason.empty()) {
++                  last_error.clear();disconnect_failed=false;recovering=false;
++                  bluetooth_disconnected=false;disconnect_reason.reset();
++                }
 +                state["state"]=disconnect_in_progress() || (!bridge_enabled && !workers.empty())?"Stopping":!bridge_enabled?((disconnect_failed || recovery_pending)?"Error":"Paused"):!blocked_reason.empty()?(blocked_reason=="USB"?"Wired":"Conflict"):active?"Active":!workers.empty()?"Connecting":last_error.empty()?"Waiting":"Error";
 +                state["batteryPercent"]=g_telemetry.battery?nlohmann::json(*g_telemetry.battery):nlohmann::json(nullptr);
 +                state["physicalVisible"]=g_telemetry.physical_visible;state["charging"]=g_telemetry.charging;state["muted"]=g_telemetry.muted;state["headphones"]=g_telemetry.headphones;
@@ -2064,6 +2097,22 @@ index 34839ba..5ce023e 100644
 +              state["inputOptions"]=ds5link::input::current();state["effects"]=ds5link::effects::runtime::current();state["effects"]["active"]=state["state"]=="Active";
 +              state["mode"]=mode;state["enabled"]=bridge_enabled;state["bluetoothDisconnected"]=bluetooth_disconnected;
 +              state["autoDisconnectEnabled"]=auto_disconnect_enabled;
++              state["idlePolicy"]=idle_policy.json();
++              state["idlePolicyWarning"]=idle_policy_warning?nlohmann::json("INVALID_IDLE_POLICY_FILE"):nlohmann::json(nullptr);
++              const auto& phase=state["state"];
++              const char* reason="controller_unavailable";
++              if(phase=="Stopping")reason="disconnecting";
++              else if(recovery_pending)reason="hidhide_recovery_pending";
++              else if(phase=="Paused")reason=bluetooth_disconnected?"manual_disconnect":"emulation_paused";
++              else if(phase=="Wired")reason="usb_direct";
++              else if(phase=="Conflict")reason="external_owner";
++              else if(phase=="Active")reason="connected";
++              else if(recovering && bridge_enabled && !dependency_unavailable)reason="recovering";
++              else if(phase=="Connecting")reason="connecting";
++              else if(bridge_enabled && dependency_unavailable)reason="dependency_unavailable";
++              else if(bluetooth_disconnected && disconnect_reason==DisconnectReason::IdleTimeout)reason="idle_timeout";
++              else if(phase=="Error")reason="connection_error";
++              state["reasonCode"]=reason;
 +              state["error"]=!blocked_reason.empty()?(blocked_reason=="USB"?"Подключён USB DualSense. Эмуляция приостановлена.":"DSX запущен. Эмуляция приостановлена до его закрытия."):state["state"]=="Active"?"":last_error;if(state["state"]=="Active" && state["physicalVisible"]==true)state["error"]="Xbox работает по USB. DualSense также виден игре: HidHide содержит настройки других устройств.";state["usbConnected"]=usb_connected;state["transport"]=usb_connected?"USB":"Bluetooth";state["rssi"]=nullptr;
 +              if(action=="getDiagnostics") {
 +                std::ifstream file(options.log_path);std::deque<std::string> lines;std::string line;std::size_t bytes=0;
@@ -2078,7 +2127,7 @@ index 34839ba..5ce023e 100644
          std::uint32_t current_trace_flags = trace_flags.load();
          const std::string reply = handle_supervisor_control_command(
              command, workers, options.db_path, current_trace_flags,
-@@ -2935,6 +3101,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2935,6 +3157,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
    try {
      g_stop_requested = false;
      const Options options = parse_platform_args(argc, argv);
@@ -2086,7 +2135,7 @@ index 34839ba..5ce023e 100644
      UniqueHandle stop_event(CreateEventA(nullptr, TRUE, FALSE, nullptr));
      if (!stop_event) {
        throw std::runtime_error("failed to create stop event: " +
-@@ -2946,26 +3113,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2946,26 +3169,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
      }
  
      vds::Logger logger(options.log_path);
@@ -2130,7 +2179,7 @@ index 34839ba..5ce023e 100644
        if (service_mode) {
          update_service_status(SERVICE_RUNNING);
          logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
-@@ -3011,7 +3181,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
+@@ -3011,7 +3237,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
  
    update_service_status(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
    g_service_exit_code = static_cast<DWORD>(
@@ -2139,7 +2188,7 @@ index 34839ba..5ce023e 100644
    update_service_status(SERVICE_STOPPED, g_service_exit_code == 0
                                               ? ERROR_SUCCESS
                                               : ERROR_SERVICE_SPECIFIC_ERROR);
-@@ -3035,6 +3205,7 @@ bool dispatch_service_if_needed() {
+@@ -3035,6 +3261,7 @@ bool dispatch_service_if_needed() {
  }
  
  int main(int argc, char **argv) {
@@ -3212,10 +3261,10 @@ index 0000000..ae4fe7f
 +}
 diff --git a/src/ds5link_input.hh b/src/ds5link_input.hh
 new file mode 100644
-index 0000000..240e053
+index 0000000..5721e33
 --- /dev/null
 +++ b/src/ds5link_input.hh
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,106 @@
 +#pragma once
 +#include <algorithm>
 +#include <cmath>
@@ -3223,14 +3272,14 @@ index 0000000..240e053
 +#include <cstdint>
 +#include <optional>
 +#include <span>
++#include "ds5link_idle_policy.hh"
 +
 +namespace ds5link {
 +class BluetoothIdleTimer {
 + using Clock=std::chrono::steady_clock;
-+ static constexpr auto desktop_timeout=std::chrono::minutes(5);
-+ static constexpr auto game_timeout=std::chrono::minutes(15);
++
 + static constexpr auto fresh_for=std::chrono::seconds(1);
-+ std::optional<Clock::time_point> last_report_,last_activity_;
++ std::optional<Clock::time_point> last_report_,last_activity_,last_charging_;
 +
 + static bool has_activity(std::span<const std::uint8_t> report){
 +  // Offsets are for the normalized DualSense report, including Report ID.
@@ -3245,16 +3294,21 @@ index 0000000..240e053
 +  return false;
 + }
 +public:
-+ void observe(std::span<const std::uint8_t> report,Clock::time_point now){
++ void observe(std::span<const std::uint8_t> report,Clock::time_point now, bool charging=false){
 +  if(report.size()<41 || report[0]!=1)return;
 +  if(!last_report_ || now-*last_report_>fresh_for || has_activity(report))last_activity_=now;
++  if(charging)last_charging_=now;
 +  last_report_=now;
 + }
-+ bool expired(Clock::time_point now,Clock::time_point game_until=Clock::time_point::min())const{
++ bool expired(Clock::time_point now,Clock::time_point game_until=Clock::time_point::min(),
++              const IdlePolicy& policy={}, bool charging=false)const{
 +  if(!last_report_ || !last_activity_ || now-*last_report_>fresh_for)return false;
-+  if(now<game_until)return now-*last_activity_>=game_timeout;
-+  // Allow a full desktop timeout after the game loses focus.
-+  return now-std::max(*last_activity_,game_until)>=desktop_timeout;
++  if(policy.keep_connected_while_charging && charging)return false;
++  const bool in_game=now<game_until;
++  const auto minutes=in_game?policy.game_minutes:policy.desktop_minutes;
++  auto since=in_game?*last_activity_:std::max(*last_activity_,game_until);
++  if(policy.keep_connected_while_charging && last_charging_)since=std::max(since,*last_charging_);
++  return minutes!=0 && now-since>=std::chrono::minutes(minutes);
 + }
 +};
 +
@@ -4218,10 +4272,10 @@ index 0000000..245df6f
 +}
 diff --git a/tests/input_tests.cc b/tests/input_tests.cc
 new file mode 100644
-index 0000000..1b90023
+index 0000000..1e88426
 --- /dev/null
 +++ b/tests/input_tests.cc
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,114 @@
 +#include <array>
 +#include <iostream>
 +#include <stdexcept>
@@ -4262,6 +4316,17 @@ index 0000000..1b90023
 +  const auto now=start+std::chrono::seconds(second);
 +  left_game.observe(idle,now);
 +  check(left_game.expired(now,start+8min)==(second==780),"desktop countdown after game focus lost is wrong");
++ }
++
++ ds5link::BluetoothIdleTimer charging;
++ const ds5link::IdlePolicy charge_policy{1,0,true};
++ check(ds5link::IdlePolicy::parse(charge_policy.json())==charge_policy,"idle policy round trip");
++ for(int second=0;second<=120;++second){
++  const auto now=start+std::chrono::seconds(second);
++  charging.observe(idle,now,second<=60);
++  check(charging.expired(now,{},charge_policy,second<=60)==(second==120),
++        "charging protection did not restart the idle countdown");
++  check(!charging.expired(now,now+5s,charge_policy,false),"game timeout is disabled");
 + }
 +
 + for(const auto [offset,value]:std::array<std::pair<int,int>,9>{{
@@ -4411,4 +4476,46 @@ index 0000000..72e4e30
 + r[8]=0x28;r[9]=r[10]=0;check(ds5link::xbox_report(r).wButtons==XUSB_GAMEPAD_A);
 + bool rejected=false;try{ds5link::xbox_report(std::span(r).first(10));}catch(const std::runtime_error&){rejected=true;}check(rejected);
 + std::cout<<"Xbox neutral, axes, triggers, eight hat directions, buttons and malformed report passed\n";
++}
+diff --git a/src/ds5link_idle_policy.hh b/src/ds5link_idle_policy.hh
+new file mode 100644
+index 0000000..ea54d7f
+--- /dev/null
++++ b/src/ds5link_idle_policy.hh
+@@ -0,0 +1,36 @@
++#pragma once
++#include <array>
++#include <algorithm>
++#include <stdexcept>
++#include <nlohmann/json.hpp>
++
++namespace ds5link {
++struct IdlePolicy {
++  int desktop_minutes = 5;
++  int game_minutes = 15;
++  bool keep_connected_while_charging = false;
++  bool operator==(const IdlePolicy&) const = default;
++
++  static IdlePolicy parse(const nlohmann::json& value) {
++    const auto minutes = [&](const char* key) {
++      constexpr std::array allowed{0, 1, 5, 10, 15, 30, 60};
++      const auto& number = value.at(key);
++      if (number.is_number_integer())
++        for (int option : allowed)
++          if (number == option) return option;
++      throw std::invalid_argument("Invalid idle interval");
++    };
++    const auto& schema = value.at("schemaVersion");
++    if (!schema.is_number_integer() || schema != 1)
++      throw std::invalid_argument("Unsupported idle policy schema");
++    return {minutes("desktopMinutes"), minutes("gameMinutes"),
++            value.at("keepConnectedWhileCharging").get<bool>()};
++  }
++
++  nlohmann::json json() const {
++    return {{"schemaVersion", 1}, {"desktopMinutes", desktop_minutes},
++            {"gameMinutes", game_minutes},
++            {"keepConnectedWhileCharging", keep_connected_while_charging}};
++  }
++};
 +}

@@ -661,6 +661,23 @@
                             AutomationProperties.Name="{local:Tr Key=c98914a14377}" ToolTip.Tip="{local:Tr Key=b62dc4a5b620}" />
                 </Grid>
                 <Border Height="1" Background="#0FFFFFFF" />
+                <Expander x:Name="IdlePolicyExpander" Margin="14,4">
+                  <StackPanel Spacing="8" Margin="0,8,0,4">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock x:Name="IdleDesktopLabel" VerticalAlignment="Center" />
+                      <ComboBox x:Name="IdleDesktop" Grid.Column="1" MinWidth="108" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock x:Name="IdleGameLabel" VerticalAlignment="Center" />
+                      <ComboBox x:Name="IdleGame" Grid.Column="1" MinWidth="108" />
+                    </Grid>
+                    <CheckBox x:Name="IdleCharging" />
+                    <Button x:Name="IdleSave" Click="SaveIdlePolicy" />
+                    <TextBlock x:Name="IdleFeedback" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Expander>
+                <TextBlock x:Name="ConnectionDetail" Margin="14,5" TextWrapping="Wrap" />
+                <Button x:Name="ConnectionActionButton" Margin="14,0,14,5" Click="RunConnectionAction" />
                 <Button x:Name="AdvancedButton" Click="ToggleAdvanced" Height="44" Padding="14,0" Theme="{StaticResource GhostRowButton}">
                   <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

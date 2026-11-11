@@ -9,6 +9,15 @@ internal static class MigrationQa
   var folder=Environment.GetEnvironmentVariable("DS5LINK_QA_OUTPUT")??Path.Combine(AppContext.BaseDirectory,"ui-qa");Directory.CreateDirectory(folder);
   try{
    await Task.Delay(100);
+   main.WindowState=WindowState.Minimized;
+   await Task.Delay(50);
+   if(main.IsVisible)throw new Exception("Minimized window did not hide");
+   main.Open();
+   if(!main.IsVisible || main.WindowState!=WindowState.Normal)throw new Exception("Minimized window did not reopen");
+   main.Hide();
+   main.Open();
+   if(!main.IsVisible)throw new Exception("Hidden window did not reopen");
+   report.Add("Minimized and hidden window restore");
    foreach(var weight in new[]{FontWeight.Normal,FontWeight.Medium,FontWeight.SemiBold,FontWeight.Bold}){
     var glyph=new Typeface(main.FontFamily,FontStyle.Normal,weight).GlyphTypeface;
     if(!glyph.FamilyName.Contains("Geologica"))throw new Exception("Unexpected font: "+glyph.FamilyName);

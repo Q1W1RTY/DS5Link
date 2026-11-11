@@ -8,7 +8,11 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DS5Link;
+internal sealed record IdlePolicy(int SchemaVersion, int DesktopMinutes, int GameMinutes, bool KeepConnectedWhileCharging);
 internal sealed record BridgeState {
+ public IdlePolicy? IdlePolicy {get;init;}
+ public string? IdlePolicyWarning {get;init;}
+ public string? ReasonCode {get;init;}
  public string State {get;init;}="Waiting";
  public string Mode {get;init;}="ps5";
  public bool Enabled {get;init;}
@@ -36,6 +40,11 @@ internal static class BridgeClient {
  internal static readonly JsonSerializerOptions JsonOptions=new(){PropertyNameCaseInsensitive=true,WriteIndented=true};
  public static Task<BridgeState> SendAsync(string command,string pipeName="DS5Link.Control.v1",bool? gameInForeground=null) =>
   SendPayloadAsync<BridgeState>(command,pipeName,gameInForeground:gameInForeground);
+ public static Task<BridgeState> SetIdlePolicyAsync(IdlePolicy policy) =>
+  SendPayloadAsync<BridgeState>("setIdlePolicy","DS5Link.Control.v1",new {
+   schemaVersion=policy.SchemaVersion, desktopMinutes=policy.DesktopMinutes,
+   gameMinutes=policy.GameMinutes, keepConnectedWhileCharging=policy.KeepConnectedWhileCharging
+  });
  public static Task<BridgeState> SetAutoDisconnectAsync(bool enabled) =>
   SendPayloadAsync<BridgeState>("setAutoDisconnect","DS5Link.Control.v1",new {enabled});
  public static Task<BridgeState> SetInputOptionsAsync(InputOptions options,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>("setInputOptions",pipeName,new {leftDeadzone=options.LeftDeadzone,rightDeadzone=options.RightDeadzone,touchEnabled=options.TouchEnabled,consumeTouchpad=options.ConsumeTouchpad,touchClickMask=options.TouchClickMask});
