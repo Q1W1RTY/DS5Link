@@ -12,9 +12,12 @@ internal static class GameProfileTests {
    var effects=new EffectOptions {Left=new(){Mode="resistance",Strength=7},AudioDeviceId="endpoint-test"};
    var catalog=GameProfiles.Load(path,input,effects);
    Check(catalog.Default.Input.Options.LeftDeadzone==12 && catalog.Default.Effects.Left.Strength==7 && !File.Exists(path),"Migration lost legacy settings or wrote before a user change");
-   var game=new GameProfile {Executable=@"C:\Games\One\game.exe",Input=new(){Options=new(){RightDeadzone=20}},Effects=new(){LedMode="rainbow"}};
+   var mapping=new InputMapping{Buttons="-E------------",Suppress=2,LeftX=new(12,137,245),RightStage=new(3,180)};
+   var game=new GameProfile {Executable=@"C:\Games\One\game.exe",Input=new(){Options=new(){RightDeadzone=20,Mapping=mapping}},Effects=new(){LedMode="rainbow"}};
    catalog=catalog.Put(game).Put(game with {Executable=@"D:\Games\Two\game.exe",Effects=effects});catalog.Save(path);
    catalog=GameProfiles.Load(path,new(),new());
+   Check(catalog.Find(game.Executable).Input.RuntimeOptions.Mapping==mapping &&
+         catalog.Default.Input.RuntimeOptions.Mapping==new InputMapping(),"Per-game input mapping was lost or leaked into defaults");
    Check(catalog.Games.Count==2 && catalog.Default.Input.Bindings["tap"].Modifiers==2 && catalog.Default.Effects.AudioDeviceId=="endpoint-test","Profile round trip lost bindings/effects");
    Check(catalog.Find(@"c:\games\one\GAME.EXE").Effects.LedMode=="rainbow" && catalog.Find(@"D:\Games\Two\game.exe").Effects.Left.Strength==7,"Exact full-path matching or case handling broken");
    Check(ReferenceEquals(catalog.Find(@"E:\Other\game.exe"),catalog.Default) && ReferenceEquals(catalog.Find(null),catalog.Default),"Same filename or inaccessible foreground incorrectly activates a game");
@@ -44,6 +47,6 @@ internal static class GameProfileTests {
    try{await ProfileApplication.ApplyAsync(game,previous,p=>throw new IOException("input offline"),p=>{effectRestored=true;return Task.CompletedTask;});throw new Exception("Rollback error swallowed");}catch(AggregateException){}
    Check(effectRestored,"Input rollback failure prevented effects rollback");
   }finally{Directory.Delete(directory,true);}
-  Console.WriteLine("12 game-profile persistence/matching/migration/rollback scenarios passed");
+  Console.WriteLine("13 game-profile persistence/matching/migration/rollback scenarios passed");
  }
 }

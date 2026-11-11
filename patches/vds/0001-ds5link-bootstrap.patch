@@ -3258,10 +3258,10 @@ index 0000000..ae4fe7f
 +}
 diff --git a/src/ds5link_input.hh b/src/ds5link_input.hh
 new file mode 100644
-index 0000000..5721e33
+index 0000000..3e5f186
 --- /dev/null
 +++ b/src/ds5link_input.hh
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,116 @@
 +#pragma once
 +#include <algorithm>
 +#include <cmath>
@@ -3270,6 +3270,7 @@ index 0000000..5721e33
 +#include <optional>
 +#include <span>
 +#include "ds5link_idle_policy.hh"
++#include "ds5link_input_mapping.hh"
 +
 +namespace ds5link {
 +class BluetoothIdleTimer {
@@ -3313,6 +3314,7 @@ index 0000000..5721e33
 + int left_deadzone=0,right_deadzone=0;
 + bool touch_enabled=false,consume_touchpad=true;
 + unsigned touch_click_mask=3; // left=1, right=2; derived from keyboard bindings
++ InputMapping mapping;
 + bool operator==(const InputOptions&) const=default;
 +};
 +enum class TouchAction {LeftClick,RightClick,Tap,SwipeLeft,SwipeRight,SwipeUp,SwipeDown};
@@ -3329,10 +3331,18 @@ index 0000000..5721e33
 +}
 +class InputProcessor {
 + InputOptions previous_{};bool initialized_=false,click_=false,tracking_=false,clicked_=false,multitouch_=false,suppress_click_=false;
++ bool left_stage_=false,right_stage_=false;
 + int id_=0,start_x_=0,start_y_=0,last_x_=0,last_y_=0;std::int64_t started_=0;
 +public:
 + std::optional<TouchAction> process(std::span<std::uint8_t> r,const InputOptions& options,std::int64_t now){
 +  if(r.size()<41 || r[0]!=1)return {};
++  if(previous_.mapping.left!=options.mapping.left)left_stage_=false;
++  if(previous_.mapping.right!=options.mapping.right)right_stage_=false;
++  for(unsigned axis=0;axis<options.mapping.axes.size();++axis)
++   r[axis+1]=options.mapping.axes[axis].apply(r[axis+1]);
++  const auto left=options.mapping.left.apply(r[5],left_stage_);
++  const auto right=options.mapping.right.apply(r[6],right_stage_);
++  options.mapping.apply_buttons(r,left|right);
 +  deadzone(r[1],r[2],options.left_deadzone);deadzone(r[3],r[4],options.right_deadzone);
 +  if(!options.touch_enabled){initialized_=tracking_=click_=multitouch_=suppress_click_=false;previous_=options;return {};}
 +  // USB report: contact at 33, packed 12-bit X/Y at 34..36; click is byte 10 bit 1.
@@ -3809,10 +3819,10 @@ index 0000000..9be83d4
 +}
 diff --git a/src/platform/win32/ds5link_input_runtime.hh b/src/platform/win32/ds5link_input_runtime.hh
 new file mode 100644
-index 0000000..03f29a6
+index 0000000..77ec8ce
 --- /dev/null
 +++ b/src/platform/win32/ds5link_input_runtime.hh
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,100 @@
 +#pragma once
 +#include "ds5link_input.hh"
 +#include "vds_fs.hh"
@@ -3833,7 +3843,44 @@ index 0000000..03f29a6
 +inline Clock::time_point heartbeat{},sample_time{};
 +inline std::array<std::uint8_t,41> sample{};
 +inline const std::string epoch=std::to_string(Clock::now().time_since_epoch().count());
-+inline nlohmann::json json(const InputOptions& o){return {{"leftDeadzone",o.left_deadzone},{"rightDeadzone",o.right_deadzone},{"touchEnabled",o.touch_enabled},{"consumeTouchpad",o.consume_touchpad},{"touchClickMask",o.touch_click_mask}};}
++inline constexpr std::array<const char*,4> axis_names{"leftX","leftY","rightX","rightY"};
++inline nlohmann::json json(const InputOptions& o){
++ nlohmann::json mapping={{"buttons",o.mapping.buttons},{"suppress",o.mapping.suppress}};
++ for(unsigned i=0;i<axis_names.size();++i){
++  const auto& axis=o.mapping.axes[i];
++  mapping[axis_names[i]]={{"minimum",axis.minimum},{"center",axis.center},{"maximum",axis.maximum}};
++ }
++ const auto stage=[](const TriggerStage& s){return nlohmann::json{{"target",s.target},{"threshold",s.threshold}};};
++ mapping["leftStage"]=stage(o.mapping.left);
++ mapping["rightStage"]=stage(o.mapping.right);
++ return {{"leftDeadzone",o.left_deadzone},{"rightDeadzone",o.right_deadzone},{"touchEnabled",o.touch_enabled},
++         {"consumeTouchpad",o.consume_touchpad},{"touchClickMask",o.touch_click_mask},{"mapping",mapping}};
++}
++inline InputMapping parse_mapping(const nlohmann::json& value){
++ const auto integer=[](const nlohmann::json& j,const char* key,int low,int high){
++  const auto& v=j.at(key);
++  if(!v.is_number_integer() || v<low || v>high)throw std::runtime_error("INVALID_INPUT_MAPPING");
++  return v.get<int>();
++ };
++ InputMapping mapping;
++ mapping.buttons=value.at("buttons").get<std::string>();
++ if(mapping.buttons.size()!=InputMapping::button_count ||
++    std::any_of(mapping.buttons.begin(),mapping.buttons.end(),[](char c){return c!='-' && (c<'A' || c>'N');}))
++  throw std::runtime_error("INVALID_INPUT_MAPPING");
++ mapping.suppress=integer(value,"suppress",0,(1u<<InputMapping::button_count)-1);
++ for(unsigned i=0;i<axis_names.size();++i){
++  const auto& axis=value.at(axis_names[i]);
++  const int center=integer(axis,"center",32,223);
++  mapping.axes[i]={integer(axis,"minimum",0,center-32),center,integer(axis,"maximum",center+32,255)};
++ }
++ const auto stage=[&](const char* key){
++  const auto& s=value.at(key);
++  return TriggerStage{integer(s,"target",-1,InputMapping::button_count-1),integer(s,"threshold",32,255)};
++ };
++ mapping.left=stage("leftStage");
++ mapping.right=stage("rightStage");
++ return mapping;
++}
 +inline InputOptions parse(const nlohmann::json& j){
 + if(!j.is_object() || !j.at("leftDeadzone").is_number_integer() || !j.at("rightDeadzone").is_number_integer() || !j.at("touchEnabled").is_boolean() || !j.at("consumeTouchpad").is_boolean())throw std::runtime_error("INVALID_INPUT_OPTIONS");
 + if(j.at("leftDeadzone")<0 || j.at("leftDeadzone")>30 || j.at("rightDeadzone")<0 || j.at("rightDeadzone")>30)throw std::runtime_error("INVALID_INPUT_OPTIONS");
@@ -3843,6 +3890,7 @@ index 0000000..03f29a6
 +  if(!j.at("touchClickMask").is_number_integer() || j.at("touchClickMask")<0 || j.at("touchClickMask")>3)throw std::runtime_error("INVALID_INPUT_OPTIONS");
 +  o.touch_click_mask=j.at("touchClickMask").get<unsigned>();
 + }
++ if(j.contains("mapping"))o.mapping=parse_mapping(j.at("mapping"));
 + return o;
 +}
 +inline void configure(const std::string& path){
@@ -4269,10 +4317,10 @@ index 0000000..245df6f
 +}
 diff --git a/tests/input_tests.cc b/tests/input_tests.cc
 new file mode 100644
-index 0000000..1e88426
+index 0000000..100246a
 --- /dev/null
 +++ b/tests/input_tests.cc
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,136 @@
 +#include <array>
 +#include <iostream>
 +#include <stdexcept>
@@ -4340,6 +4388,28 @@ index 0000000..1e88426
 +}
 +int main(){
 + test_bluetooth_idle_timer();
++ {
++  ds5link::InputOptions options;
++  options.mapping.axes[0]={20,140,240};
++  options.mapping.buttons[1]='E'; // Cross to L1
++  options.mapping.suppress=1u<<1;
++  options.mapping.right={3,180}; // R2 second stage to Triangle
++  check(ds5link::input::parse(ds5link::input::json(options))==options,"input mapping persistence changed options");
++  ds5link::InputProcessor mapped;
++  auto report=neutral();report[8]=0x28;report[1]=140;report[6]=180;
++  mapped.process(report,options,1);
++  check(report[1]==128 && (report[8]&0xf0)==0x80 && (report[9]&1) && report[6]==180,
++        "calibration, suppression or second stage did not reach the game report");
++  report=neutral();report[8]=0x28;report[1]=240;report[6]=174;options.mapping.suppress=0;
++  mapped.process(report,options,2);
++  check(report[1]==255 && (report[8]&0xf0)==0xa0 && (report[9]&1),"additive remap or hysteresis failed");
++  report=neutral();report[8]=8;report[6]=171;
++  mapped.process(report,options,3);
++  check((report[8]&0xf0)==0,"second stage remained held below release threshold");
++  auto invalid=ds5link::input::json(options);invalid["mapping"]["leftX"]["minimum"]=139;
++  bool rejected=false;try{ds5link::input::parse(invalid);}catch(const std::runtime_error&){rejected=true;}
++  check(rejected,"invalid calibration accepted");
++ }
 + ds5link::InputProcessor p;ds5link::InputOptions off;
 + for(int x=0;x<256;x++)for(int y=0;y<256;y++){auto r=neutral();r[1]=x;r[2]=y;auto original=r;check(!p.process(r,off,0) && r==original,"disabled processing changed native report");}
 + auto r=neutral();r[1]=140;r[2]=120;r[3]=255;auto original=r;
@@ -4514,5 +4584,68 @@ index 0000000..ea54d7f
 +            {"gameMinutes", game_minutes},
 +            {"keepConnectedWhileCharging", keep_connected_while_charging}};
 +  }
++};
++}
+diff --git a/src/ds5link_input_mapping.hh b/src/ds5link_input_mapping.hh
+new file mode 100644
+index 0000000..20ba128
+--- /dev/null
++++ b/src/ds5link_input_mapping.hh
+@@ -0,0 +1,57 @@
++#pragma once
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <span>
++#include <string>
++
++namespace ds5link {
++struct AxisCalibration {
++ int minimum=0,center=128,maximum=255;
++ bool operator==(const AxisCalibration&) const=default;
++ std::uint8_t apply(int raw) const {
++  const auto value=std::clamp(raw,minimum,maximum);
++  if(value<center)return static_cast<std::uint8_t>((value-minimum)*128/(center-minimum));
++  return static_cast<std::uint8_t>(128+(value-center)*127/(maximum-center));
++ }
++};
++struct TriggerStage {
++ int target=-1,threshold=192;
++ bool operator==(const TriggerStage&) const=default;
++ unsigned apply(int value,bool& held) const {
++  held=target>=0 && value>=(held?threshold-8:threshold);
++  return held?1u<<target:0;
++ }
++};
++struct InputMapping {
++ static constexpr unsigned button_count=14;
++ std::array<AxisCalibration,4> axes{};
++ std::string buttons=std::string(button_count,'-');
++ unsigned suppress=0;
++ TriggerStage left,right;
++ bool operator==(const InputMapping&) const=default;
++
++ void apply_buttons(std::span<std::uint8_t> report,unsigned added) const {
++  // Face buttons, shoulders, Create/Options, stick clicks and cardinal D-pad.
++  constexpr std::array<unsigned,9> hats{1,3,2,6,4,12,8,9,0};
++  const auto hat=report[8]&15;
++  const unsigned original=(report[8]>>4)|((report[9]&3u)<<4)|
++    ((report[9]&0xf0u)<<2)|(hats[hat<9?hat:8]<<10);
++  unsigned removed=0;
++  for(unsigned source=0;source<button_count;++source) {
++   const unsigned mask=1u<<source;
++   if((original&mask)==0 || buttons[source]=='-')continue;
++   added|=1u<<(buttons[source]-'A');
++   if(suppress&mask)removed|=mask;
++  }
++  if((added&~original)==0 && (removed&~added)==0)return;
++  const unsigned result=(original&~removed)|added;
++  unsigned directions=result>>10;
++  if((directions&5)==5)directions&=~5u;
++  if((directions&10)==10)directions&=~10u;
++  const auto new_hat=std::find(hats.begin(),hats.end(),directions)-hats.begin();
++  report[8]=static_cast<std::uint8_t>((result&15)<<4|new_hat);
++  report[9]=static_cast<std::uint8_t>((report[9]&0x0c)|((result>>4)&3)|((result>>2)&0xf0));
++ }
 +};
 +}

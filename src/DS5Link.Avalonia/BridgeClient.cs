@@ -47,7 +47,7 @@ internal static class BridgeClient {
   });
  public static Task<BridgeState> SetAutoDisconnectAsync(bool enabled) =>
   SendPayloadAsync<BridgeState>("setAutoDisconnect","DS5Link.Control.v1",new {enabled});
- public static Task<BridgeState> SetInputOptionsAsync(InputOptions options,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>("setInputOptions",pipeName,new {leftDeadzone=options.LeftDeadzone,rightDeadzone=options.RightDeadzone,touchEnabled=options.TouchEnabled,consumeTouchpad=options.ConsumeTouchpad,touchClickMask=options.TouchClickMask});
+ public static Task<BridgeState> SetInputOptionsAsync(InputOptions options,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>("setInputOptions",pipeName,JsonSerializer.SerializeToElement(options,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.CamelCase}));
  public static Task<EffectState> SetEffectOptionsAsync(EffectOptions options,string pipeName="DS5Link.Control.v1")=>SendPayloadAsync<EffectState>("setEffectOptions",pipeName,options.Wire());
  public static Task<EffectState> ReadEffectsAsync(int audioLevel,string pipeName="DS5Link.Control.v1",long audioTick=0,HapticFrame[]? audioFrames=null)=>SendPayloadAsync<EffectState>("getEffects",pipeName,audioLevel:audioLevel,audioTick:audioTick,audioFrames:audioFrames);
  public static Task<InputPreview> ReadInputPreviewAsync(string pipeName="DS5Link.Control.v1") => SendPayloadAsync<InputPreview>("getInputPreview",pipeName);

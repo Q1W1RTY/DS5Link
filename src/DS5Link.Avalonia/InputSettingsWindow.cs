@@ -33,6 +33,7 @@ internal sealed partial class InputSettingsWindow:Window {
   Closing+=OnSettingsClosing;
   SettingsTabs.SelectionChanged+=(_,e)=>{if(ReferenceEquals(e.Source,SettingsTabs)){CancelCapture();ResetEffectsButton.IsVisible=SettingsTabs.SelectedIndex>=3?true:false;SettingsTabs.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(s=>s.Name=="SettingsPageScroll")?.ScrollToHome();}};
   InitializeEffectControls(effects??new(),applyEffects);
+  InitializeInputMapping(profile.Options.Mapping);
   DeadzoneChanged(this,null!);
   InitializeAutoApply();
   if(preview)SaveStatusText.Text=L.T("Предпросмотр");
@@ -88,9 +89,11 @@ internal sealed partial class InputSettingsWindow:Window {
   LeftVisual.Deadzone=(int)LeftDeadzone.Value;RightVisual.Deadzone=(int)RightDeadzone.Value;LeftVisual.InvalidateVisual();RightVisual.InvalidateVisual();
  }
  internal void SetPreview(InputPreview value){
+  latestInputPreview=value;
   bool fresh=value.Fresh;sampleReportAge=fresh?value.AgeMs:500;sampleAge.Restart();
   TouchVisual.Sample=fresh?value:new();TouchVisual.InvalidateVisual();
-  LeftVisual.SetSample(fresh,value.LeftX,value.LeftY);RightVisual.SetSample(fresh,value.RightX,value.RightY);
+  LeftVisual.SetSample(fresh,value.LeftX,value.LeftY,mappingDraft.LeftX,mappingDraft.LeftY);
+  RightVisual.SetSample(fresh,value.RightX,value.RightY,mappingDraft.RightX,mappingDraft.RightY);
  }
  void MinimizeWindow(object sender,RoutedEventArgs e)=>WindowState=WindowState.Minimized;
  void CloseWindow(object sender,RoutedEventArgs e)=>Close();

@@ -49,7 +49,7 @@ internal sealed partial class InputSettingsWindow {
   closed=true;autoApplyTimer.Stop();previewTimer.Stop();CancelCapture();
  }
  async Task ApplyTouchDraftAsync(){
-  var next=new InputProfile {Options=new(){LeftDeadzone=(int)LeftDeadzone.Value,RightDeadzone=(int)RightDeadzone.Value,TouchEnabled=TouchBindingsEnabled.IsChecked==true,ConsumeTouchpad=ConsumeTouchpad.IsChecked==true},Bindings=new(bindings)};
+  var next=new InputProfile {Options=new(){LeftDeadzone=(int)LeftDeadzone.Value,RightDeadzone=(int)RightDeadzone.Value,TouchEnabled=TouchBindingsEnabled.IsChecked==true,ConsumeTouchpad=ConsumeTouchpad.IsChecked==true,Mapping=ReadInputMapping()},Bindings=new(bindings)};
   if(!next.Valid)throw new InvalidOperationException(L.T("Назначьте хотя бы одну клавишу для тачпада."));
   if(saveProfile!=null)await SaveProfileInput(next);else await apply(next);
  }

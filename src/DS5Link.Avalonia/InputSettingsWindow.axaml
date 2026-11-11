@@ -810,6 +810,7 @@
                       </StackPanel>
                     </Border>
                   </Grid>
+                  <StackPanel x:Name="InputMappingTools" Spacing="10" Margin="0,16,0,0" />
                   <Border Background="#0AFFFFFF" CornerRadius="16" Padding="16" Margin="0,16,0,0">
                     <TextBlock Text="{local:Tr Key=7d69a0dd8ed7}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0" />
                   </Border>

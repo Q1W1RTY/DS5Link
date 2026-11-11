@@ -12,10 +12,14 @@ public sealed class StickView:Control {
  internal int Deadzone;
  internal bool HasSample;
  internal double RawX,RawY;
+ double calibratedX,calibratedY;
  internal static double Axis(int value)=>(Math.Clamp(value,0,255)-128)/(value>=128?127.0:128.0);
- internal void SetSample(bool fresh,int x,int y){HasSample=fresh;RawX=Axis(x);RawY=Axis(y);InvalidateVisual();}
+ internal void SetSample(bool fresh,int x,int y,AxisCalibration? calibrationX=null,AxisCalibration? calibrationY=null){
+  HasSample=fresh;RawX=Axis(x);RawY=Axis(y);
+  calibratedX=Axis(calibrationX?.Apply(x)??x);calibratedY=Axis(calibrationY?.Apply(y)??y);InvalidateVisual();
+ }
  internal (double X,double Y) Output {
-  get{double radius=Math.Sqrt(RawX*RawX+RawY*RawY),zone=Deadzone/100.0;if(radius<=zone)return (0,0);double scale=(radius-zone)/(radius*(1-zone));return (Math.Clamp(RawX*scale,-1,1),Math.Clamp(RawY*scale,-1,1));}
+  get{double radius=Math.Sqrt(calibratedX*calibratedX+calibratedY*calibratedY),zone=Deadzone/100.0;if(radius<=zone)return (0,0);double scale=(radius-zone)/(radius*(1-zone));return (Math.Clamp(calibratedX*scale,-1,1),Math.Clamp(calibratedY*scale,-1,1));}
  }
  public override void Render(DrawingContext dc){
   base.Render(dc);double x=Bounds.Width/2,y=Bounds.Height/2-9,r=Math.Max(1,Math.Min(Bounds.Width-24,Bounds.Height-42)/2);
