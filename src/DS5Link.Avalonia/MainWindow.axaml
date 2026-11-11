@@ -780,8 +780,14 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock x:Name="FooterStatus" Text="" FontSize="11" Foreground="#66FFFFFF" />
-              <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="11" Foreground="#66FFFFFF" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
+                <TextBlock x:Name="VersionText" FontSize="11" Foreground="#88FFFFFF" VerticalAlignment="Center" />
+                <Button x:Name="UpdateButton" Padding="7,2" FontSize="11"
+                        Click="UpdateApplication" Theme="{StaticResource CompactButton}" />
+              </StackPanel>
             </Grid>
+            <TextBlock x:Name="UpdateFeedback" Margin="4,0,4,2" FontSize="11"
+                       TextWrapping="Wrap" IsVisible="False" />
           </StackPanel>
         </Border>
       </Border>

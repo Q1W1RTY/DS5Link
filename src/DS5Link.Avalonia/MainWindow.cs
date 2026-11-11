@@ -41,6 +41,8 @@ internal sealed partial class MainWindow : Window {
         this.preview = preview;
         InitializeComponent();
         InitializeConnectionSettings();
+        UpdateButton.Content = L.T("Обновить");
+        AutomationProperties.SetName(UpdateButton, L.T("Обновить DS5Link"));
 
         UpdateLanguageButton();
         InitializeInputControls();
@@ -88,6 +90,7 @@ internal sealed partial class MainWindow : Window {
         tray.DoubleClick += (_, _) => Open();
 
         tray.ContextMenuStrip = CreateTrayMenu();
+        StartUpdateChecks();
 
         timer.Tick += async (_, _) => await Refresh();
         Display(new());

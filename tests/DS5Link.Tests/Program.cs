@@ -26,6 +26,19 @@ static async Task TestClient(string scenario) {
  try {var state=await client;Check((scenario=="valid" || scenario=="options") && state.State=="Active" && state.BatteryPercent==75,"Invalid reply was accepted");}
  catch(IOException)when(scenario!="valid"){}
 }
+var installedUpdateVersion=new Version(0,1,57);
+foreach(var (tag,draft,prerelease,expected) in new[]{
+ ("v0.1.58",false,false,true),("v0.1.57",false,false,false),("v0.1.56",false,false,false),
+ ("v0.1.58",true,false,false),("v0.1.58",false,true,false),("v0.1.58-beta",false,false,false)
+}){
+ var updateRelease=JsonSerializer.SerializeToElement(new {tag_name=tag,draft,prerelease});
+ Check((ReleaseUpdate.ReadVersion(updateRelease,installedUpdateVersion)!=null)==expected,"Update version selection failed: "+tag);
+}
+var checksum=new string('A',64);
+Check(ReleaseUpdate.ReadChecksum(checksum+"  DS5Link-Setup.exe").Length==32,"Valid update checksum was rejected");
+try{ReleaseUpdate.ReadChecksum(checksum+"  other.exe");throw new Exception("Wrong update asset was accepted");}
+catch(IOException){}
+Console.WriteLine("Update version and checksum selection passed");
 foreach(var scenario in new[]{"valid","options","id","version","error","large","eof"})await TestClient(scenario);
 var masked=Diagnostics.Mask("address=12:34:56:78:9a:bc HID\\VID_054C&PID_0CE6\\123456789ABC");
 Check(!masked.Contains("12:34") && !masked.Contains("123456789ABC") && !masked.Contains("VID_054C"),"Private device identity leaked");

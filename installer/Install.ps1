@@ -1,5 +1,5 @@
 ﻿[CmdletBinding()]
-param([string]$OwnerSid,[switch]$InstallerMode,[string]$InstallDir,[switch]$ValidateOnly,[switch]$RebootRequired)
+param([string]$OwnerSid,[switch]$InstallerMode,[string]$InstallDir,[switch]$ValidateOnly,[switch]$RebootRequired,[switch]$UpdateOnly)
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'InstallPaths.ps1')
@@ -13,6 +13,7 @@ if(!$admin){
  $arguments+=@('-InstallDir',('"'+$install+'"'))
  if($InstallerMode){$arguments+='-InstallerMode'}
  if($RebootRequired){$arguments+='-RebootRequired'}
+ if($UpdateOnly){$arguments+='-UpdateOnly'}
  $child=Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -ArgumentList $arguments -Wait -PassThru
  if($child.ExitCode -notin @(0,3010)){throw "Installation failed: $($child.ExitCode). See %ProgramData%\DS5Link\setup.log"}
  if($InstallerMode){exit $child.ExitCode}
@@ -30,6 +31,10 @@ $registry='HKLM:\SOFTWARE\DS5Link'
 if(Test-Path $registry){$previousOwner=(Get-ItemProperty $registry -Name OwnerSid -ErrorAction SilentlyContinue).OwnerSid;if($previousOwner -and $previousOwner -ne $OwnerSid){throw 'DS5Link belongs to another user. Ownership transfer is not automatic.'}}
 $existing=Get-CimInstance Win32_Service -Filter "Name='$serviceName'"
 if($existing -and !$existing.PathName.StartsWith(('"'+$install+'\engine\vdsd.exe"'),[StringComparison]::OrdinalIgnoreCase)){throw 'An unrelated service uses the DS5Link service name.'}
+if($UpdateOnly -and (!$existing -or !(Get-DS5RegisteredInstall) -or
+ !(Test-Path -LiteralPath (Join-Path $install 'DS5Link.exe') -PathType Leaf))){
+ throw 'Update requires an existing DS5Link installation.'
+}
 function Set-ProtectedDirectory([string]$Path,[switch]$OwnerRead) {
  if((Test-Path $Path) -and ((Get-Item -LiteralPath $Path).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'A protected application directory is a reparse point.'}
  New-Item -ItemType Directory $Path -Force | Out-Null
@@ -49,10 +54,11 @@ function Verify-Package([string]$Path,[string]$Expected) {
  if(!(Test-Path -LiteralPath $Path) -or (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -ne $Expected){throw "Package hash mismatch: $Path"}
  if((Get-AuthenticodeSignature -LiteralPath $Path).Status -ne 'Valid'){throw "Package signature invalid: $Path"}
 }
-$requiresReboot=[bool]$RebootRequired
+$requiresReboot=[bool]$RebootRequired -or ($UpdateOnly -and (Test-Path (Join-Path $data 'reboot-required.txt')))
 $dependencies=Get-Content (Join-Path $PSScriptRoot 'dependencies.json') -Raw | ConvertFrom-Json
 . (Join-Path $PSScriptRoot 'Dependencies.ps1')
 foreach($dependency in $dependencies){
+ if($UpdateOnly){break}
  $code=Install-DS5Dependency $dependency
  if($code -eq 3010){$requiresReboot=$true;Set-Content (Join-Path $data 'reboot-required.txt') 'Restart Windows before hardware acceptance.'}
 }

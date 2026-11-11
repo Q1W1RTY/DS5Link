@@ -23,6 +23,11 @@ internal static class Setup {
   Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
   try {
    Directory.CreateDirectory(Path.GetDirectoryName(Log));
+   if(args.Length==1 && args[0]=="--update-installed") return UpdateInstalled();
+   if(args.Length==3 && args[0]=="--update-elevated") {
+    if(!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))throw new IOException("Administrator token required");
+    try { Extract();Verify();return RunElevated(args[1],args[2],false,true); } finally {Cleanup();}
+   }
    if(args.Length==2 && args[0]=="--dependency-elevated") {
     if(!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))throw new IOException("Administrator token required");
     if(args[1]!="usbip-win2" && args[1]!="HidHide" && args[1]!="ViGEmBus")throw new IOException("Unknown dependency");
@@ -42,13 +47,38 @@ internal static class Setup {
    using (var wizard = new Wizard()) { Application.Run(wizard); return wizard.ExitCode; }
   } catch (Exception e) { MessageBox.Show(e.Message, "DS5Link", MessageBoxButtons.OK,MessageBoxIcon.Error); return 1; }
  }
+ static int UpdateInstalled() {
+  string destination;
+  using(var key=Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\DS5Link"))
+   destination=key==null?null:key.GetValue("InstallLocation") as string;
+  if(String.IsNullOrWhiteSpace(destination) || destination.IndexOf('"')>=0 ||
+     !File.Exists(Path.Combine(destination,"DS5Link.exe")))
+   throw new IOException("Installed DS5Link was not found.");
+  var info=new ProcessStartInfo(Application.ExecutablePath,
+   "--update-elevated \""+destination+"\" "+WindowsIdentity.GetCurrent().User.Value) {
+    UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden
+   };
+  int result;
+  try {
+   using(var child=Process.Start(info)) {child.WaitForExit();result=child.ExitCode;}
+  } catch(System.ComponentModel.Win32Exception error) {
+   if(error.NativeErrorCode==1223)return 1223;
+   throw;
+  }
+  if(result==3010)MessageBox.Show("Перезапустите Windows для завершения обновления.","DS5Link");
+  else if(result!=0)
+   MessageBox.Show("DS5Link update failed. See the setup log.","DS5Link",MessageBoxButtons.OK,MessageBoxIcon.Error);
+  if(File.Exists(Path.Combine(destination,"DS5Link.exe")))
+   using(var ui=Process.Start(new ProcessStartInfo(Path.Combine(destination,"DS5Link.exe"),"--show"){UseShellExecute=true})) {}
+  return result;
+ }
  internal static int DependencyScript(string arguments) {
   var info=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe"),"-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(Work,"Dependencies.ps1")+"\" "+arguments){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
   using(var child=Process.Start(info)) {var output=child.StandardOutput.ReadToEndAsync();var error=child.StandardError.ReadToEndAsync();child.WaitForExit();Task.WaitAll(output,error);Write(output.Result);Write(error.Result);if(child.ExitCode!=0 && child.ExitCode!=3010)throw new IOException("Не удалось проверить или установить драйвер. Журнал: "+Log);return child.ExitCode;}
  }
- internal static int RunElevated(string destination,string owner,bool rebootRequired) {
+ internal static int RunElevated(string destination,string owner,bool rebootRequired,bool updateOnly=false) {
   new SecurityIdentifier(owner);
-  var info=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe"),"-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(Work,"Install.ps1")+"\" -InstallerMode -InstallDir \""+destination+"\" -OwnerSid "+owner+(rebootRequired?" -RebootRequired":"")){UseShellExecute=false,CreateNoWindow=true};
+  var info=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe"),"-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(Work,"Install.ps1")+"\" -InstallerMode -InstallDir \""+destination+"\" -OwnerSid "+owner+(rebootRequired?" -RebootRequired":"")+(updateOnly?" -UpdateOnly":"")){UseShellExecute=false,CreateNoWindow=true};
   using(var process=Process.Start(info)){process.WaitForExit();return process.ExitCode;}
  }
  internal static void Write(string value) { File.AppendAllText(Log, DateTime.Now.ToString("o") + " " + value + "\r\n", Encoding.UTF8); }

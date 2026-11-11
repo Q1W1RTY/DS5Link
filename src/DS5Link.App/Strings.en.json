@@ -304,5 +304,16 @@
   "Требуется восстановление HidHide.": "HidHide recovery is required.",
   "Повторить": "Retry",
   "Нажмите PS для подключения.": "Press PS to reconnect.",
-  "Не удалось подключить контроллер.": "Could not connect the controller."
+  "Не удалось подключить контроллер.": "Could not connect the controller.",
+  "Обновить DS5Link": "Update DS5Link",
+  "Обновить": "Update",
+  "Обновить до {0}": "Update to {0}",
+  "Доступна версия {0}. Нажмите «Обновить» в приложении.": "Version {0} is available. Select Update in the app.",
+  "Обновление доступно из установленной версии DS5Link.": "Open the installed copy of DS5Link to update.",
+  "Проверяем и скачиваем обновление…": "Checking for and downloading an update\u2026",
+  "Установлена последняя версия.": "You have the latest version.",
+  "Подтвердите обновление в окне Windows.": "Approve the update in the Windows prompt.",
+  "Обновление отменено.": "Update cancelled.",
+  "Обновление не применилось.": "The update could not be applied.",
+  "Не удалось скачать или проверить обновление.": "Could not download or verify the update."
 }
