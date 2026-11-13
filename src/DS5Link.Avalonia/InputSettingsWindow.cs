@@ -60,7 +60,7 @@ internal sealed partial class InputSettingsWindow:Window {
    bool selected=pair.Key==selectedAction;
    pair.Value.Background=new SolidColorBrush(selected?Color.FromArgb(45,10,132,255):Color.FromArgb(20,255,255,255));
    pair.Value.BorderBrush=new SolidColorBrush(selected?Color.FromArgb(90,10,132,255):Color.FromArgb(14,255,255,255));
-   pair.Value.Foreground=selected?Brushes.White:new SolidColorBrush(Color.FromArgb(220,255,255,255));
+   pair.Value.Foreground=selected?Brushes.White:new SolidColorBrush(Color.FromRgb(224,224,224));
   }
   TouchVisual.SelectedAction=selectedAction;TouchVisual.InvalidateVisual();
  }

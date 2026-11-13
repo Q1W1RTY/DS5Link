@@ -9,7 +9,7 @@ internal sealed class EffectSlider:StackPanel {
  internal readonly Slider Slider;
  internal int Value {get=>(int)Slider.Value;set=>Slider.Value=value;}
  internal EffectSlider(Window window,string caption,int min,int max,string unit="",Func<int,string>? format=null){
-  Margin=new Thickness(0,0,0,5);var row=new Grid();var label=new TextBlock {Text=caption,FontSize=12,Foreground=new SolidColorBrush(Color.FromArgb(187,255,255,255))};var value=new TextBlock {HorizontalAlignment=HorizontalAlignment.Right,FontSize=12};row.Children.Add(label);row.Children.Add(value);Children.Add(row);
+  Margin=new Thickness(0,0,0,5);var row=new Grid();var label=new TextBlock {Text=caption,FontSize=12,Foreground=new SolidColorBrush(Color.FromRgb(196,196,196))};var value=new TextBlock {HorizontalAlignment=HorizontalAlignment.Right,FontSize=12};row.Children.Add(label);row.Children.Add(value);Children.Add(row);
   Slider=new Slider {Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Theme=window.RequireTheme("InputSlider"),Margin=new Thickness(0,3,0,0)};Slider.ValueChanged+=(_,_)=>value.Text=format?.Invoke((int)Slider.Value)??$"{Slider.Value:F0}{unit}";Children.Add(Slider);Value=min;
  }
 }
@@ -102,7 +102,7 @@ internal sealed partial class InputSettingsWindow {
   TriggerTestButton.IsEnabled=!preview && !testingTriggers && state.Active;
   effectState=state;TriggerOwnership.Text=$"L2: {(state.LeftOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))} · R2: {(state.RightOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))}";
   LedOwnership.Text=state.LedOwned?L.T("Подсветкой управляет игра до переподключения эмуляции."):L.T("Цвет игры всегда имеет приоритет. Для режима заряда: зелёный / оранжевый / красный.");
-  AudioEffectsCard.IsEnabled=!xboxMode;AudioEffectsCard.Opacity=xboxMode?0.45:1;
+  AudioEffectsCard.IsEnabled=!xboxMode;
   AudioMeter.Value=xboxMode?0:Math.Clamp(inputPeak*100,0,100);
   AudioStatus.Text=xboxMode?L.T("Недоступно в Xbox-режиме. Переключитесь на PS5."):state.RumbleOwned?L.T("Игра использует вибрацию / HD-haptics. Звук не подмешивается."):!string.IsNullOrEmpty(audioError)?L.T("Захват звука недоступен: ")+audioError:!state.Options.AudioEnabled?L.T("Захват звука выключен"):!state.Active?L.T("Захват приостановлен: включите эмуляцию и подключите контроллер."):inputPeak>0?L.F("Вход {0:F1}% · haptics {1}%",inputPeak*100,level):L.F("Ожидание звука · {0}",source);
  }

@@ -33,7 +33,7 @@ internal sealed partial class MainWindow : Window {
     static readonly Brush BlueBrush = new SolidColorBrush(Color.FromRgb(10, 132, 255));
     static readonly Brush AmberBrush = new SolidColorBrush(Color.FromRgb(255, 159, 10));
     static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(255, 69, 58));
-    static readonly Brush MutedBrush = new SolidColorBrush(Color.FromArgb(140, 255, 255, 255));
+    static readonly Brush MutedBrush = new SolidColorBrush(Color.FromRgb(165, 165, 165));
     static readonly Brush ActiveSegmentBg = new SolidColorBrush(Color.FromArgb(43, 255, 255, 255));
     static readonly Brush InactiveSegmentBg = Avalonia.Media.Brushes.Transparent;
 
@@ -360,12 +360,12 @@ internal sealed partial class MainWindow : Window {
     void SetFooterMessage(string text) {
         footerResetTimer?.Stop();
         FooterStatus.Text = text;
-        FooterStatus.Foreground = new SolidColorBrush(Color.FromArgb(210, 255, 255, 255));
+        FooterStatus.Foreground = new SolidColorBrush(Color.FromRgb(224, 224, 224));
         footerResetTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.4) };
         footerResetTimer.Tick += (_, _) => {
             footerResetTimer.Stop();
             FooterStatus.Text = "";
-            FooterStatus.Foreground = new SolidColorBrush(Color.FromArgb(102, 255, 255, 255));
+            FooterStatus.Foreground = new SolidColorBrush(Color.FromRgb(156, 156, 156));
         };
         footerResetTimer.Start();
     }

@@ -100,7 +100,7 @@
     </ControlTheme>
     <ControlTheme x:Key="SegmentButton" TargetType="Button">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="#8CFFFFFF" />
+      <Setter Property="Foreground" Value="#9C9C9C" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="FontWeight" Value="Medium" />
@@ -118,10 +118,10 @@
         <Setter Property="Background" Value="#15FFFFFF" />
       </Style>
       <Style Selector="^:pointerover">
-        <Setter Property="Foreground" Value="#E5FFFFFF" />
+        <Setter Property="Foreground" Value="#E8E8E8" />
       </Style>
       <Style Selector="^:disabled">
-        <Setter Property="Foreground" Value="#35FFFFFF" />
+        <Setter Property="Foreground" Value="#9C9C9C" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -208,7 +208,7 @@
       <Setter Property="Background" Value="#0FFFFFFF" />
       <Setter Property="BorderBrush" Value="#0AFFFFFF" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Foreground" Value="#D9FFFFFF" />
+      <Setter Property="Foreground" Value="#DEDEDE" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="FontWeight" Value="Medium" />
       <Setter Property="Cursor" Value="Hand" />
@@ -235,7 +235,7 @@
         </Setter>
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -267,7 +267,7 @@
         <Setter Property="Foreground" Value="#FF6961" />
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -305,7 +305,7 @@
         </Setter>
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -373,7 +373,7 @@
     </ControlTheme>
     <ControlTheme x:Key="CompactButton" TargetType="Button">
       <Setter Property="Background" Value="#1CFFFFFF" />
-      <Setter Property="Foreground" Value="#E5FFFFFF" />
+      <Setter Property="Foreground" Value="#E8E8E8" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Padding" Value="10,5" />
       <Setter Property="FontSize" Value="11.5" />
@@ -392,7 +392,7 @@
         <Setter Property="Background" Value="#2CFFFFFF" />
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
     </ControlTheme>
     <ControlTheme x:Key="LanguageButtonStyle" TargetType="Button">
@@ -413,15 +413,15 @@
         <Setter Property="Background" Value="#18FFFFFF" />
       </Style>
       <Style Selector="^:pressed /template/ Border#Frame">
-        <Setter Property="Opacity" Value="0.75" />
+        <Setter Property="Background" Value="#24FFFFFF" />
       </Style>
       <Style Selector="^:disabled /template/ Border#Frame">
-        <Setter Property="Opacity" Value="0.45" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
     </ControlTheme>
     <ControlTheme x:Key="QuietButton" TargetType="Button">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="#8CFFFFFF" />
+      <Setter Property="Foreground" Value="#9C9C9C" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Padding" Value="6,4" />
       <Setter Property="FontSize" Value="11.5" />
@@ -468,7 +468,7 @@
       </Setter>
     </ControlTheme>
     <ControlTheme x:Key="SettingsTab" TargetType="TabItem">
-      <Setter Property="Foreground" Value="#99FFFFFF" />
+      <Setter Property="Foreground" Value="#A6A6A6" />
       <Setter Property="Padding" Value="18,8" />
       <Setter Property="Template">
         <Setter.Value>
@@ -518,11 +518,11 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="DS5Link" FontSize="13" FontWeight="SemiBold" Foreground="#E5FFFFFF" />
+                <TextBlock Text="DS5Link" FontSize="13" FontWeight="SemiBold" Foreground="#E8E8E8" />
               </StackPanel>
               <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <Button x:Name="LanguageButton" Content="RU" Width="34" Height="22" FontSize="11" FontWeight="Normal" Foreground="#CCFFFFFF" Margin="0,0,8,0" Click="ToggleLanguage" Theme="{StaticResource LanguageButtonStyle}" ToolTip.Tip="RU / EN" AutomationProperties.Name="RU / EN" />
+                  <Button x:Name="LanguageButton" Content="RU" Width="34" Height="22" FontSize="11" FontWeight="Normal" Foreground="#D2D2D2" Margin="0,0,8,0" Click="ToggleLanguage" Theme="{StaticResource LanguageButtonStyle}" ToolTip.Tip="RU / EN" AutomationProperties.Name="RU / EN" />
                   <Button x:Name="MinimizeBtn" Click="MinimizeWindow" Theme="{StaticResource WindowsMinimizeButton}" ToolTip.Tip="{local:Tr Key=36c25d9ffcfd}" />
                   <Button x:Name="CloseBtn" Click="CloseWindow" Margin="2,0,0,0" Theme="{StaticResource WindowsCloseButton}" ToolTip.Tip="{local:Tr Key=a7a4033657e8}" />
                 </StackPanel>
@@ -550,7 +550,7 @@
                     <Border x:Name="StatusBadge" CornerRadius="10" Background="#10FFFFFF" BorderBrush="#12FFFFFF" BorderThickness="1" Padding="8,2.5" Margin="0,4,0,0" HorizontalAlignment="Left">
                       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#30D158" Margin="0,0,5,0" VerticalAlignment="Center" />
-                        <TextBlock x:Name="BadgeText" Text="{local:Tr Key=074415c7fee7}" FontSize="11" FontWeight="Normal" Foreground="#C4FFFFFF" VerticalAlignment="Center" />
+                        <TextBlock x:Name="BadgeText" Text="{local:Tr Key=074415c7fee7}" FontSize="11" FontWeight="Normal" Foreground="#CBCBCB" VerticalAlignment="Center" />
                       </StackPanel>
                     </Border>
                   </StackPanel>
@@ -641,9 +641,9 @@
                 <Grid>
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{local:Tr Key=ef1b6a12a28e}" Foreground="#F0F1F3" />
-                    <TextBlock Text="{local:Tr Key=82462183aa82}" FontSize="11.5" Foreground="#99FFFFFF" Margin="0,3,0,0" />
+                    <TextBlock Text="{local:Tr Key=82462183aa82}" FontSize="11.5" Foreground="#A6A6A6" Margin="0,3,0,0" />
                   </StackPanel>
-                  <TextBlock Text="↗" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#B8FFFFFF" FontSize="17" />
+                  <TextBlock Text="↗" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#C1C1C1" FontSize="17" />
                 </Grid>
               </Button>
             </Border>
@@ -707,8 +707,8 @@
                     <Border x:Name="DiagnosticsPanel">
                       <StackPanel>
                         <Grid Margin="0,0,0,8">
-                          <TextBlock Text="{local:Tr Key=43a7f10a3621}" FontSize="12" FontWeight="Normal" Foreground="#BBFFFFFF" />
-                          <TextBlock x:Name="DiagnosticsUpdated" FontSize="11" Foreground="#55FFFFFF" HorizontalAlignment="Right" />
+                          <TextBlock Text="{local:Tr Key=43a7f10a3621}" FontSize="12" FontWeight="Normal" Foreground="#C4C4C4" />
+                          <TextBlock x:Name="DiagnosticsUpdated" FontSize="11" Foreground="#9C9C9C" HorizontalAlignment="Right" />
                         </Grid>
                         <Grid Margin="0,0,0,8">
                           <Grid.ColumnDefinitions>
@@ -721,8 +721,8 @@
                         </Grid>
                         <TextBlock x:Name="DiagnosticError" Foreground="#E9B4A8" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="False" />
                         <Border Height="1" Background="#0DFFFFFF" Margin="0,2,0,12" />
-                        <TextBlock Text="{local:Tr Key=18e1009d6ab9}" FontSize="11" FontWeight="Normal" Foreground="#BBFFFFFF" Margin="0,0,0,8" />
-                        <TextBlock x:Name="EventsEmpty" Text="{local:Tr Key=3d64c6af641f}" FontSize="11" Foreground="#A8FFFFFF" Margin="0,0,0,10" />
+                        <TextBlock Text="{local:Tr Key=18e1009d6ab9}" FontSize="11" FontWeight="Normal" Foreground="#C4C4C4" Margin="0,0,0,8" />
+                        <TextBlock x:Name="EventsEmpty" Text="{local:Tr Key=3d64c6af641f}" FontSize="11" Foreground="#B3B3B3" Margin="0,0,0,10" />
                         <ItemsControl x:Name="EventList" AutomationProperties.Name="{local:Tr Key=22d6be4e5625}">
                           <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -737,17 +737,17 @@
                                     </Grid.ColumnDefinitions>
                                     <Ellipse Width="5" Height="5" HorizontalAlignment="Left" VerticalAlignment="Center">
                                                                         </Ellipse>
-                                    <TextBlock Grid.Column="1" Text="{Binding Category}" FontSize="11" Foreground="#B8FFFFFF" />
-                                    <TextBlock Grid.Column="2" Text="{Binding RepeatLabel}" FontSize="11" Foreground="#A8FFFFFF" Margin="0,0,6,0" />
-                                    <TextBlock Grid.Column="3" Text="{Binding Time}" FontSize="11" Foreground="#A8FFFFFF" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Category}" FontSize="11" Foreground="#C1C1C1" />
+                                    <TextBlock Grid.Column="2" Text="{Binding RepeatLabel}" FontSize="11" Foreground="#B3B3B3" Margin="0,0,6,0" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Time}" FontSize="11" Foreground="#B3B3B3" />
                                   </Grid>
-                                  <TextBlock Text="{Binding Message}" FontSize="11" Foreground="#D9FFFFFF" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="44" />
+                                  <TextBlock Text="{Binding Message}" FontSize="11" Foreground="#DEDEDE" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="44" />
                                 </StackPanel>
                               </Border>
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock Text="{local:Tr Key=d73f2250fc27}" FontSize="14" Foreground="#55FFFFFF" Margin="0,3,0,4" />
+                        <TextBlock Text="{local:Tr Key=d73f2250fc27}" FontSize="14" Foreground="#9C9C9C" Margin="0,3,0,4" />
                         <Grid Margin="0,8,0,0">
                           <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -779,9 +779,9 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Name="FooterStatus" Text="" FontSize="11" Foreground="#66FFFFFF" />
+              <TextBlock x:Name="FooterStatus" Text="" FontSize="11" Foreground="#9C9C9C" />
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
-                <TextBlock x:Name="VersionText" FontSize="11" Foreground="#88FFFFFF" VerticalAlignment="Center" />
+                <TextBlock x:Name="VersionText" FontSize="11" Foreground="#9C9C9C" VerticalAlignment="Center" />
                 <Button x:Name="UpdateButton" Padding="7,2" FontSize="11"
                         Click="UpdateApplication" Theme="{StaticResource CompactButton}" />
               </StackPanel>

@@ -100,7 +100,7 @@
     </ControlTheme>
     <ControlTheme x:Key="SegmentButton" TargetType="Button">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="#8CFFFFFF" />
+      <Setter Property="Foreground" Value="#9C9C9C" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="FontWeight" Value="Medium" />
@@ -118,10 +118,10 @@
         <Setter Property="Background" Value="#15FFFFFF" />
       </Style>
       <Style Selector="^:pointerover">
-        <Setter Property="Foreground" Value="#E5FFFFFF" />
+        <Setter Property="Foreground" Value="#E8E8E8" />
       </Style>
       <Style Selector="^:disabled">
-        <Setter Property="Foreground" Value="#35FFFFFF" />
+        <Setter Property="Foreground" Value="#9C9C9C" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -208,7 +208,7 @@
       <Setter Property="Background" Value="#0FFFFFFF" />
       <Setter Property="BorderBrush" Value="#0AFFFFFF" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Foreground" Value="#D9FFFFFF" />
+      <Setter Property="Foreground" Value="#DEDEDE" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="FontWeight" Value="Medium" />
       <Setter Property="Cursor" Value="Hand" />
@@ -235,7 +235,7 @@
         </Setter>
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -267,7 +267,7 @@
         <Setter Property="Foreground" Value="#FF6961" />
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -305,7 +305,7 @@
         </Setter>
       </Style>
       <Style Selector="^:disabled /template/ Border#Bg">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -400,7 +400,7 @@
         <Setter Property="Background" Value="#12FFFFFF" />
       </Style>
       <Style Selector="^:disabled /template/ Border#ButtonSurface">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
       <Style Selector="^:disabled">
         <Setter Property="Cursor" Value="Arrow" />
@@ -424,16 +424,16 @@
         <Setter Property="Background" Value="#18FFFFFF" />
       </Style>
       <Style Selector="^:pressed /template/ Border#Frame">
-        <Setter Property="Opacity" Value="0.75" />
+        <Setter Property="Background" Value="#24FFFFFF" />
       </Style>
       <Style Selector="^:disabled /template/ Border#Frame">
-        <Setter Property="Opacity" Value="0.45" />
+        <Setter Property="Background" Value="#0BFFFFFF" />
       </Style>
     </ControlTheme>
     <ControlTheme x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource CompactButton}">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="Foreground" Value="#8CFFFFFF" />
+      <Setter Property="Foreground" Value="#9C9C9C" />
       <Setter Property="MinHeight" Value="32" />
       <Setter Property="Padding" Value="12,5" />
     </ControlTheme>
@@ -462,7 +462,7 @@
       </Setter>
     </ControlTheme>
     <ControlTheme x:Key="SettingsTab" TargetType="TabItem">
-      <Setter Property="Foreground" Value="#99FFFFFF" />
+      <Setter Property="Foreground" Value="#A6A6A6" />
       <Setter Property="Padding" Value="18,8" />
       <Setter Property="Template">
         <Setter.Value>
@@ -550,7 +550,7 @@
       </Style>
     </ControlTheme>
     <ControlTheme TargetType="CheckBox" x:Key="{x:Type CheckBox}">
-      <Setter Property="Foreground" Value="#DDFFFFFF" />
+      <Setter Property="Foreground" Value="#E1E1E1" />
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Template">
         <Setter.Value>
@@ -581,14 +581,14 @@
         <Setter Property="BorderBrush" Value="White" />
       </Style>
       <Style Selector="^:disabled">
-        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Foreground" Value="#A5A5A5" />
       </Style>
     </ControlTheme>
     <ControlTheme x:Key="SettingsSidebarHeader" TargetType="StackPanel">
       <Setter Property="TextElement.FontWeight" Value="Medium" />
     </ControlTheme>
     <ControlTheme x:Key="SettingsSidebarItem" TargetType="TabItem">
-      <Setter Property="Foreground" Value="#8CFFFFFF" />
+      <Setter Property="Foreground" Value="#9C9C9C" />
       <Setter Property="Padding" Value="14,11" />
       <Setter Property="Margin" Value="0,0,0,4" />
       <Setter Property="Cursor" Value="Hand" />
@@ -605,7 +605,7 @@
         <Setter Property="Background" Value="#15FFFFFF" />
       </Style>
       <Style Selector="^:pointerover">
-        <Setter Property="Foreground" Value="#E5FFFFFF" />
+        <Setter Property="Foreground" Value="#E8E8E8" />
       </Style>
       <Style Selector="^:selected /template/ Border#Item">
         <Setter Property="Background" Value="#2BFFFFFF" />
@@ -636,7 +636,7 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock Text="DS5Link" FontSize="14" FontWeight="SemiBold" Foreground="#E5FFFFFF" />
+              <TextBlock Text="DS5Link" FontSize="14" FontWeight="SemiBold" Foreground="#E8E8E8" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
               <Button x:Name="MinimizeBtn" Click="MinimizeWindow" Theme="{StaticResource WindowsMinimizeButton}" ToolTip.Tip="{local:Tr Key=36c25d9ffcfd}" />
@@ -658,7 +658,7 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="{local:Tr Key=359497aff53e}" FontSize="14" FontWeight="Normal" Foreground="#B8FFFFFF" Margin="0,0,0,4" />
+                  <TextBlock Text="{local:Tr Key=359497aff53e}" FontSize="14" FontWeight="Normal" Foreground="#C1C1C1" Margin="0,0,0,4" />
                   <Grid x:Name="ProfileBar">
                     <ComboBox x:Name="ProfileSelector" SelectionChanged="SelectProfile" Theme="{StaticResource DarkCombo}" AutomationProperties.Name="{local:Tr Key=ed2568c2fe8f}" />
                   </Grid>
@@ -666,7 +666,7 @@
                 <Border Grid.Column="1" CornerRadius="10" Background="#10FFFFFF" BorderBrush="#12FFFFFF" BorderThickness="1" Padding="10,4" VerticalAlignment="Center" Margin="16,0,0,0">
                   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="6" Height="6" Fill="#0A84FF" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <TextBlock x:Name="ActiveProfileText" FontSize="14" FontWeight="Normal" Foreground="#C4FFFFFF" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="220" />
+                    <TextBlock x:Name="ActiveProfileText" FontSize="14" FontWeight="Normal" Foreground="#CBCBCB" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="220" />
                   </StackPanel>
                 </Border>
               </Grid>
@@ -683,14 +683,14 @@
               <Grid>
                 <StackPanel>
                   <TextBlock Text="{local:Tr Key=2c9ee214648c}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=d0bc0ca4eca3}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=d0bc0ca4eca3}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                   <Border Margin="0,20,0,14" Padding="22" MaxWidth="580" HorizontalAlignment="Left" Theme="{StaticResource SharedCard}">
                     <StackPanel>
                       <TextBlock Text="{local:Tr Key=0917f0563097}" FontSize="16" FontWeight="SemiBold" />
-                      <TextBlock Text="{local:Tr Key=31d635f71e4f}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=31d635f71e4f}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                       <Border Background="#0AFFFFFF" CornerRadius="14" Padding="14" Margin="0,18,0,16">
                         <StackPanel>
-                          <TextBlock Text="{local:Tr Key=38de927163a0}" FontSize="14" Foreground="#B8FFFFFF" />
+                          <TextBlock Text="{local:Tr Key=38de927163a0}" FontSize="14" Foreground="#C1C1C1" />
                           <TextBlock x:Name="ProfilePath" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                         </StackPanel>
                       </Border>
@@ -708,11 +708,11 @@
                     <StackPanel>
                       <TextBlock Text="{local:Tr Key=816d2d526b54}" FontSize="16" FontWeight="SemiBold" />
                       <TextBlock Text="{local:Tr Key=134c5e7e0095}" FontWeight="SemiBold" Margin="0,18,0,0" />
-                      <TextBlock Text="{local:Tr Key=7e15802aefa5}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=7e15802aefa5}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                       <TextBlock Text="{local:Tr Key=4f7afb38bab1}" FontWeight="SemiBold" Margin="0,16,0,0" />
-                      <TextBlock Text="{local:Tr Key=038040b7ecea}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=038040b7ecea}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                       <TextBlock Text="{local:Tr Key=4dd6e5425647}" FontWeight="SemiBold" Margin="0,16,0,0" />
-                      <TextBlock Text="{local:Tr Key=e8d7a62f941a}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=e8d7a62f941a}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                     </StackPanel>
                   </Border>
                 </StackPanel>
@@ -732,7 +732,7 @@
                 </Grid.RowDefinitions>
                 <StackPanel Margin="0,0,0,18">
                   <TextBlock Text="{local:Tr Key=9956df53e7e8}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=ffab08b397ab}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=ffab08b397ab}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
                 <Grid Grid.Row="1">
                   <Grid.ColumnDefinitions>
@@ -745,9 +745,9 @@
                       <TextBlock Text="{local:Tr Key=e3df6fd07025}" FontSize="15" FontWeight="SemiBold" />
                       <local:TouchpadView x:Name="TouchVisual" Height="200" Margin="0,14,0,16" />
                       <UniformGrid x:Name="ClickButtons" Columns="2" />
-                      <TextBlock Text="{local:Tr Key=755e370cb659}" FontSize="14" Foreground="#C4FFFFFF" Margin="0,20,0,8" />
+                      <TextBlock Text="{local:Tr Key=755e370cb659}" FontSize="14" Foreground="#CBCBCB" Margin="0,20,0,8" />
                       <UniformGrid x:Name="GestureButtons" Columns="5" />
-                      <TextBlock Text="{local:Tr Key=4d6ec937f0e6}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=4d6ec937f0e6}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                     </StackPanel>
                   </Border>
                   <StackPanel Grid.Column="2">
@@ -757,19 +757,19 @@
                           <TextBlock Text="{local:Tr Key=d8b29aea2a9d}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
                           <CheckBox x:Name="TouchBindingsEnabled" HorizontalAlignment="Right" Theme="{StaticResource IOSBlueSwitch}" />
                         </Grid>
-                        <TextBlock Text="{local:Tr Key=f3683a8af02e}" FontSize="14" Foreground="#B8FFFFFF" Margin="0,24,0,5" />
+                        <TextBlock Text="{local:Tr Key=f3683a8af02e}" FontSize="14" Foreground="#C1C1C1" Margin="0,24,0,5" />
                         <TextBlock x:Name="SelectedActionName" FontSize="17" FontWeight="Normal" TextWrapping="Wrap" />
                         <Button x:Name="SelectedBindingButton" Content="{local:Tr Key=f3120930eaec}" Margin="0,18,0,0" Click="CaptureSelectedAction" Theme="{StaticResource SettingsBindingButton}" />
-                        <TextBlock Text="{local:Tr Key=5ea52af246e2}" FontSize="14" Foreground="#B8FFFFFF" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                        <TextBlock Text="{local:Tr Key=5ea52af246e2}" FontSize="14" Foreground="#C1C1C1" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,8,0,0" />
                         <Button Content="{local:Tr Key=8965271d3c97}" Margin="0,12,0,0" HorizontalAlignment="Center" Click="ClearSelectedBinding" Theme="{StaticResource QuietButton}" />
                         <Border Height="1" Background="#12FFFFFF" Margin="0,18,0,18" />
-                        <CheckBox x:Name="ConsumeTouchpad" Foreground="#BBFFFFFF">
+                        <CheckBox x:Name="ConsumeTouchpad" Foreground="#C4C4C4">
                           <TextBlock Text="{local:Tr Key=0c41bc6cd02e}" TextWrapping="Wrap" FontSize="14" Width="190" />
                         </CheckBox>
-                        <TextBlock Text="{local:Tr Key=ea2bdea116b9}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                        <TextBlock Text="{local:Tr Key=ea2bdea116b9}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                       </StackPanel>
                     </Border>
-                    <TextBlock x:Name="CaptureHint" Text="{local:Tr Key=245f443e9e86}" TextWrapping="Wrap" Foreground="#C4FFFFFF" FontSize="14" Margin="8,14,8,0" />
+                    <TextBlock x:Name="CaptureHint" Text="{local:Tr Key=245f443e9e86}" TextWrapping="Wrap" Foreground="#CBCBCB" FontSize="14" Margin="8,14,8,0" />
                   </StackPanel>
                 </Grid>
               </Grid>
@@ -784,7 +784,7 @@
               <Grid>
                 <StackPanel>
                   <TextBlock Text="{local:Tr Key=bf1c4e37cebe}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=11381d971739}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=11381d971739}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                   <Grid Margin="0,20,0,0">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition />
@@ -796,7 +796,7 @@
                         <TextBlock Text="{local:Tr Key=07870d9873ad}" FontSize="17" FontWeight="SemiBold" />
                         <local:StickView x:Name="LeftVisual" Height="238" Margin="0,16,0,16" />
                         <Grid>
-                          <TextBlock Text="{local:Tr Key=15c0ea81ef19}" Foreground="#BBFFFFFF" />
+                          <TextBlock Text="{local:Tr Key=15c0ea81ef19}" Foreground="#C4C4C4" />
                           <TextBlock x:Name="LeftDeadzoneValue" HorizontalAlignment="Right" />
                         </Grid>
                         <Slider x:Name="LeftDeadzone" Minimum="0" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="DeadzoneChanged" Margin="0,10,0,0" Theme="{StaticResource InputSlider}" />
@@ -807,7 +807,7 @@
                         <TextBlock Text="{local:Tr Key=85bdc26de6c5}" FontSize="17" FontWeight="SemiBold" />
                         <local:StickView x:Name="RightVisual" Height="238" Margin="0,16,0,16" />
                         <Grid>
-                          <TextBlock Text="{local:Tr Key=15c0ea81ef19}" Foreground="#BBFFFFFF" />
+                          <TextBlock Text="{local:Tr Key=15c0ea81ef19}" Foreground="#C4C4C4" />
                           <TextBlock x:Name="RightDeadzoneValue" HorizontalAlignment="Right" />
                         </Grid>
                         <Slider x:Name="RightDeadzone" Minimum="0" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="DeadzoneChanged" Margin="0,10,0,0" Theme="{StaticResource InputSlider}" />
@@ -816,7 +816,7 @@
                   </Grid>
                   <StackPanel x:Name="InputMappingTools" Spacing="10" Margin="0,16,0,0" />
                   <Border Background="#0AFFFFFF" CornerRadius="16" Padding="16" Margin="0,16,0,0">
-                    <TextBlock Text="{local:Tr Key=7d69a0dd8ed7}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                    <TextBlock Text="{local:Tr Key=7d69a0dd8ed7}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0" />
                   </Border>
                 </StackPanel>
               </Grid>
@@ -831,13 +831,13 @@
               <Grid>
                 <StackPanel>
                   <TextBlock Text="{local:Tr Key=c61f9f8272b9}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=861bfb08a373}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=861bfb08a373}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                   <Grid Margin="0,18,0,12">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition />
                       <ColumnDefinition Width="280" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{local:Tr Key=faaa59ea728f}" VerticalAlignment="Center" Foreground="#C4FFFFFF" />
+                    <TextBlock Text="{local:Tr Key=faaa59ea728f}" VerticalAlignment="Center" Foreground="#CBCBCB" />
                     <ComboBox x:Name="TriggerPreset" Grid.Column="1" Theme="{StaticResource DarkCombo}" />
                   </Grid>
                   <Grid Height="106" ClipToBounds="True" Margin="0,0,0,12">
@@ -854,7 +854,7 @@
                           HorizontalAlignment="Left" Margin="0,8,0,0" IsEnabled="False" />
                   <TextBlock x:Name="TriggerTestFeedback" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="False" />
                   <Border x:Name="EffectsScroll" Background="#0AFFFFFF" CornerRadius="16" Padding="16" Margin="0,14,0,0">
-                    <TextBlock x:Name="TriggerOwnership" Text="{local:Tr Key=9af70bbe07e6}" FontSize="14" Foreground="#C4FFFFFF" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" />
+                    <TextBlock x:Name="TriggerOwnership" Text="{local:Tr Key=9af70bbe07e6}" FontSize="14" Foreground="#CBCBCB" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" />
                   </Border>
                 </StackPanel>
               </Grid>
@@ -869,7 +869,7 @@
               <Grid>
                 <StackPanel>
                   <TextBlock Text="{local:Tr Key=985936f581a1}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=2c9b65225816}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=2c9b65225816}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                   <Border Padding="24" Margin="0,20,0,0" Theme="{StaticResource SharedCard}">
                     <Grid>
                       <Grid.ColumnDefinitions>
@@ -883,12 +883,12 @@
                           <UniformGrid x:Name="LedSwatches" Columns="7" Margin="0,0,0,18" />
                           <StackPanel x:Name="RgbSliders" />
                           <Grid Margin="0,14,0,0">
-                            <TextBlock Text="{local:Tr Key=94b0411574ad}" Foreground="#BBFFFFFF" />
+                            <TextBlock Text="{local:Tr Key=94b0411574ad}" Foreground="#C4C4C4" />
                             <TextBlock x:Name="BrightnessLabel" HorizontalAlignment="Right" />
                           </Grid>
                           <Slider x:Name="LedBrightness" Minimum="1" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,8,0,16" Theme="{StaticResource InputSlider}" />
                           <Grid>
-                            <TextBlock Text="{local:Tr Key=7bb0153b7a5a}" Foreground="#BBFFFFFF" />
+                            <TextBlock Text="{local:Tr Key=7bb0153b7a5a}" Foreground="#C4C4C4" />
                             <TextBlock x:Name="SpeedLabel" HorizontalAlignment="Right" />
                           </Grid>
                           <Slider x:Name="LedSpeed" Minimum="1" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,8,0,0" Theme="{StaticResource InputSlider}" />
@@ -898,12 +898,12 @@
                         <StackPanel VerticalAlignment="Center">
                           <Image Source="avares://DS5Link/Assets/DualSense-card.png" Height="200" Stretch="Uniform" />
                           <Border x:Name="LedPreview" Height="12" CornerRadius="6" Background="#0A84FF" Margin="25,18,25,0" />
-                          <TextBlock Text="{local:Tr Key=32060a34f5be}" HorizontalAlignment="Center" Foreground="#B8FFFFFF" FontSize="14" Margin="0,12,0,0" />
+                          <TextBlock Text="{local:Tr Key=32060a34f5be}" HorizontalAlignment="Center" Foreground="#C1C1C1" FontSize="14" Margin="0,12,0,0" />
                         </StackPanel>
                       </Border>
                     </Grid>
                   </Border>
-                  <TextBlock x:Name="LedOwnership" Text="{local:Tr Key=0502189b512d}" TextWrapping="Wrap" FontSize="14" Foreground="#C4FFFFFF" MaxWidth="560" HorizontalAlignment="Left" Margin="12,16,12,0" />
+                  <TextBlock x:Name="LedOwnership" Text="{local:Tr Key=0502189b512d}" TextWrapping="Wrap" FontSize="14" Foreground="#CBCBCB" MaxWidth="560" HorizontalAlignment="Left" Margin="12,16,12,0" />
                 </StackPanel>
               </Grid>
             </TabItem>
@@ -917,15 +917,15 @@
               <Grid>
                 <StackPanel>
                   <TextBlock Text="{local:Tr Key=e5f1f61945af}" FontSize="24" FontWeight="SemiBold" />
-                  <TextBlock Text="{local:Tr Key=943516566d1e}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Text="{local:Tr Key=943516566d1e}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" />
                   <Border x:Name="AudioEffectsCard" Padding="24" Margin="0,20,0,0" Theme="{StaticResource SharedCard}">
                     <StackPanel>
                       <Grid>
                         <TextBlock Text="{local:Tr Key=80dcbc4a2bdc}" FontSize="17" FontWeight="SemiBold" />
                         <CheckBox x:Name="AudioEffectsEnabled" HorizontalAlignment="Right" Theme="{StaticResource IOSBlueSwitch}" />
                       </Grid>
-                      <TextBlock Text="{local:Tr Key=41ed44bb406e}" Foreground="#C4FFFFFF" FontSize="14" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0" />
-                      <TextBlock Text="{local:Tr Key=298a637fde2c}" FontSize="14" Foreground="#C4FFFFFF" Margin="0,24,0,8" />
+                      <TextBlock Text="{local:Tr Key=41ed44bb406e}" Foreground="#CBCBCB" FontSize="14" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                      <TextBlock Text="{local:Tr Key=298a637fde2c}" FontSize="14" Foreground="#CBCBCB" Margin="0,24,0,8" />
                       <Grid>
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition />
@@ -935,9 +935,9 @@
                         <Button Grid.Column="1" Content="↻" Click="RefreshAudioDevices" Margin="8,0,0,0" Padding="4" ToolTip.Tip="{local:Tr Key=9c1c463bb43a}" Theme="{StaticResource CompactButton}" />
                       </Grid>
                       <StackPanel x:Name="AudioSliders" Margin="0,22,0,0" />
-                      <CheckBox x:Name="AudioBassOnly" Content="{local:Tr Key=f46d91036eba}" Foreground="#BBFFFFFF" FontSize="14" Margin="0,16,0,20" />
+                      <CheckBox x:Name="AudioBassOnly" Content="{local:Tr Key=f46d91036eba}" Foreground="#C4C4C4" FontSize="14" Margin="0,16,0,20" />
                       <ProgressBar x:Name="AudioMeter" Height="6" Minimum="0" Maximum="100" Background="#25FFFFFF" Foreground="#0A84FF" BorderThickness="0" />
-                      <TextBlock x:Name="AudioStatus" Text="{local:Tr Key=af2d2566893f}" FontSize="14" Foreground="#C4FFFFFF" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,12,0,0" />
+                      <TextBlock x:Name="AudioStatus" Text="{local:Tr Key=af2d2566893f}" FontSize="14" Foreground="#CBCBCB" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,12,0,0" />
                     </StackPanel>
                   </Border>
                 </StackPanel>
@@ -952,7 +952,7 @@
             <Grid>
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Ellipse x:Name="SaveStatusDot" Width="6" Height="6" Fill="#88FFFFFF" Margin="0,0,8,0" />
-                <TextBlock x:Name="SaveStatusText" Text="{local:Tr Key=a2674cebbc63}" Foreground="#C4FFFFFF" FontSize="14" />
+                <TextBlock x:Name="SaveStatusText" Text="{local:Tr Key=a2674cebbc63}" Foreground="#CBCBCB" FontSize="14" />
               </StackPanel>
               <Button x:Name="ResetEffectsButton" Content="{local:Tr Key=05c4d434c8e8}" HorizontalAlignment="Right" Click="ResetEffects" Theme="{StaticResource QuietButton}" IsVisible="False" />
             </Grid>
