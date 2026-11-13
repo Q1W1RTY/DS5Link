@@ -62,6 +62,10 @@ internal sealed partial class MainWindow {
   profileTimer.Tick+=async(_,_)=>await RefreshGameProfile();
   profileTimer.Start();
  }
+ async Task ReplaceProfiles(GameProfiles next){
+  next.Save(GameProfiles.FilePath);profiles=next;++profileRevision;
+  await RefreshGameProfile();
+ }
  async Task SaveProfile(GameProfile profile){
   var next=profiles.Put(profile);next.Save(GameProfiles.FilePath);profiles=next;++profileRevision;
   await RefreshGameProfile();

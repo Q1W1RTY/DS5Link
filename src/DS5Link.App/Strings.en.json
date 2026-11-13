@@ -333,5 +333,15 @@
   "Измерить полный ход": "Measure full travel",
   "Центр записан. Запустите замер и вращайте оба стика по краю.": "Centers recorded. Start the next measurement and rotate both sticks around their outer edges.",
   "Не удалось измерить полный ход. Повторите и доводите стики до края.": "Full travel was not measured. Try again and move both sticks to their outer edges.",
-  "Калибровка рассчитана. Сравните точки на графиках.": "Calibration calculated. Compare the dots on the stick plots."
+  "Калибровка рассчитана. Сравните точки на графиках.": "Calibration calculated. Compare the dots on the stick plots.",
+  "Экспорт": "Export",
+  "Импорт": "Import",
+  "Импорт профилей": "Import profiles",
+  "Экспорт профилей": "Export profiles",
+  "Выберите локальный файл JSON.": "Choose a local JSON file.",
+  "Файл профилей слишком большой.": "The profile file is too large.",
+  "Заменить общие настройки и все игровые профили содержимым файла?": "Replace the default settings and all game profiles?",
+  "Проверить курки · 3 с": "Test triggers \u00b7 3 s",
+  "Нажмите курки. Тест завершится сам.": "Pull the triggers. The test ends automatically.",
+  "Тест недоступен. Подключите контроллер и выберите свободный курок с эффектом.": "Connect the controller and select an effect on a trigger the game is not using."
 }

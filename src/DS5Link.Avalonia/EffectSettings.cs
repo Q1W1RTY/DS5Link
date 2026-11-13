@@ -35,7 +35,9 @@ internal sealed partial class InputSettingsWindow {
  EffectSlider redSlider=null!,greenSlider=null!,blueSlider=null!,sensitivitySlider=null!,limitSlider=null!,gateSlider=null!;
  Func<EffectOptions,Task>? applyEffects;
  EffectState effectState=new();readonly Stopwatch ledClock=Stopwatch.StartNew();
+ bool testingTriggers;
  void InitializeEffectControls(EffectOptions options,Func<EffectOptions,Task>? save){
+  TriggerTestButton.Content=L.T("Проверить курки · 3 с");
   applyEffects=save;leftTrigger=new(this,L.T("Левый · L2"));rightTrigger=new(this,L.T("Правый · R2"));TriggerEditors.Children.Add(new Border {Child=leftTrigger,Theme=this.RequireTheme("SharedCard"),Padding=new Thickness(22),Margin=new Thickness(0,0,7,0)});TriggerEditors.Children.Add(new Border {Child=rightTrigger,Theme=this.RequireTheme("SharedCard"),Padding=new Thickness(22),Margin=new Thickness(7,0,0,0)});
   TriggerPreset.ItemsSource=new[]{L.T("Свой / без пресета"),L.T("Без ручных эффектов"),L.T("Лёгкое сопротивление"),L.T("Упругое сопротивление"),L.T("Шутер"),L.T("Гонка"),L.T("Пульсация")};TriggerPreset.SelectedIndex=0;
   TriggerPreset.SelectionChanged+=(_,_)=>{
@@ -53,6 +55,23 @@ internal sealed partial class InputSettingsWindow {
   var devices=new[]{new AudioOutputDevice("",L.T("Устройство вывода Windows"))};AudioDevice.ItemsSource=devices;AudioDevice.SelectedIndex=0;
   LoadEffectDraft(options);
   Loaded+=(_,_)=>{if(!preview)LoadAudioDevices(readProfiles==null?options.AudioDeviceId:editingProfile.Effects.AudioDeviceId);};
+ }
+ async void TestTriggers(object? sender,RoutedEventArgs e){
+  if(preview || !TriggerTestButton.IsEnabled)return;
+  testingTriggers=true;
+  TriggerTestButton.IsEnabled=false;
+  TriggerTestFeedback.IsVisible=true;
+  try{
+   await BridgeClient.PreviewTriggersAsync(leftTrigger.Value,rightTrigger.Value);
+   TriggerTestFeedback.Text=L.T("Нажмите курки. Тест завершится сам.");
+   await Task.Delay(3000);
+   if(!closed)TriggerTestFeedback.IsVisible=false;
+  }catch(Exception){
+   if(!closed)TriggerTestFeedback.Text=L.T("Тест недоступен. Подключите контроллер и выберите свободный курок с эффектом.");
+  }finally{
+   testingTriggers=false;
+   if(!closed)TriggerTestButton.IsEnabled=effectState.Active;
+  }
  }
  void LoadEffectDraft(EffectOptions options){
   leftTrigger.Set(options.Left);rightTrigger.Set(options.Right);TriggerPreset.SelectedIndex=0;
@@ -80,6 +99,7 @@ internal sealed partial class InputSettingsWindow {
   LedPreview.Background=new SolidColorBrush(Color.FromRgb((byte)Math.Clamp(r*scale,0,255),(byte)Math.Clamp(g*scale,0,255),(byte)Math.Clamp(b*scale,0,255)));
  }
  internal void SetEffectState(EffectState state,string audioError,int level,double inputPeak=0,string source="",bool xboxMode=false){
+  TriggerTestButton.IsEnabled=!preview && !testingTriggers && state.Active;
   effectState=state;TriggerOwnership.Text=$"L2: {(state.LeftOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))} · R2: {(state.RightOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))}";
   LedOwnership.Text=state.LedOwned?L.T("Подсветкой управляет игра до переподключения эмуляции."):L.T("Цвет игры всегда имеет приоритет. Для режима заряда: зелёный / оранжевый / красный.");
   AudioEffectsCard.IsEnabled=!xboxMode;AudioEffectsCard.Opacity=xboxMode?0.45:1;

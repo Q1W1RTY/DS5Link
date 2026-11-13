@@ -49,6 +49,9 @@ internal static class BridgeClient {
   SendPayloadAsync<BridgeState>("setAutoDisconnect","DS5Link.Control.v1",new {enabled});
  public static Task<BridgeState> SetInputOptionsAsync(InputOptions options,string pipeName="DS5Link.Control.v1") => SendPayloadAsync<BridgeState>("setInputOptions",pipeName,JsonSerializer.SerializeToElement(options,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.CamelCase}));
  public static Task<EffectState> SetEffectOptionsAsync(EffectOptions options,string pipeName="DS5Link.Control.v1")=>SendPayloadAsync<EffectState>("setEffectOptions",pipeName,options.Wire());
+ public static Task<EffectState> PreviewTriggersAsync(TriggerOptions left,TriggerOptions right)=>
+  SendPayloadAsync<EffectState>("previewTriggers","DS5Link.Control.v1",
+   JsonSerializer.SerializeToElement(new {left,right},new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.CamelCase}));
  public static Task<EffectState> ReadEffectsAsync(int audioLevel,string pipeName="DS5Link.Control.v1",long audioTick=0,HapticFrame[]? audioFrames=null)=>SendPayloadAsync<EffectState>("getEffects",pipeName,audioLevel:audioLevel,audioTick:audioTick,audioFrames:audioFrames);
  public static Task<InputPreview> ReadInputPreviewAsync(string pipeName="DS5Link.Control.v1") => SendPayloadAsync<InputPreview>("getInputPreview",pipeName);
  public static Task<TouchInputBatch> ReadInputEventsAsync(long after) => SendPayloadAsync<TouchInputBatch>("getInputEvents","DS5Link.Control.v1",afterSequence:after);

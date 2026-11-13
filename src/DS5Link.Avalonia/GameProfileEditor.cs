@@ -11,13 +11,51 @@ internal sealed partial class InputSettingsWindow {
  Func<string,Task>? deleteProfile;
  GameProfile editingProfile=new();
  bool selectingProfile;
+ Func<GameProfiles,Task>? replaceProfiles;
 
- internal void InitializeProfiles(Func<GameProfiles> read,Func<GameProfile,Task> save,Func<string,Task> delete,string active,string error=""){
+ internal void InitializeProfiles(Func<GameProfiles> read,Func<GameProfile,Task> save,Func<string,Task> delete,string active,string error="",Func<GameProfiles,Task>? replace=null){
   readProfiles=read;saveProfile=save;deleteProfile=delete;
+  replaceProfiles=replace;
+  ExportProfilesButton.Content=L.T("Экспорт");
+  ImportProfilesButton.Content=L.T("Импорт");
   ProfileBar.IsEnabled=!preview && error=="";AddProfileButton.IsEnabled=ProfileBar.IsEnabled;
   if(error!=""){InputSettingsNotice.Text=error;InputSettingsNotice.IsVisible=true;SettingsTabs.IsEnabled=false;return;}
   editingProfile=read().Find(active);
   RefreshProfileList();LoadProfileDraft();SetActiveProfile(read().Find(active).Label);
+ }
+ async void ExportProfiles(object? sender,RoutedEventArgs e)=>await TransferProfiles(false);
+ async void ImportProfiles(object? sender,RoutedEventArgs e)=>await TransferProfiles(true);
+ async Task TransferProfiles(bool import){
+  if(preview || !ProfileBar.IsEnabled || readProfiles==null || replaceProfiles==null)return;
+  ProfileBar.IsEnabled=SettingsTabs.IsEnabled=false;
+  try{
+   if(!await ApplyPendingSettings())return;
+   var json=new FilePickerFileType("JSON"){Patterns=new[]{"*.json"}};
+   if(import){
+    var files=await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions{
+     Title=L.T("Импорт профилей"),AllowMultiple=false,FileTypeFilter=new[]{json}});
+    if(files.Count==0 || closed)return;
+    var path=files[0].TryGetLocalPath()??throw new System.IO.IOException(L.T("Выберите локальный файл JSON."));
+    if(new System.IO.FileInfo(path).Length>2*1024*1024)throw new System.IO.IOException(L.T("Файл профилей слишком большой."));
+    var next=GameProfiles.Load(path,new(),new());
+    if(MessageBox.Show(this,L.T("Заменить общие настройки и все игровые профили содержимым файла?"),
+        L.T("Импорт профилей"),MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
+    await replaceProfiles(next);
+    if(closed)return;
+    editingProfile=readProfiles().Find(editingProfile.Executable);
+    RefreshProfileList();LoadProfileDraft();
+   }else{
+    var file=await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions{
+     Title=L.T("Экспорт профилей"),SuggestedFileName="DS5Link-profiles",DefaultExtension="json",FileTypeChoices=new[]{json}});
+    if(file==null || closed)return;
+    var path=file.TryGetLocalPath()??throw new System.IO.IOException(L.T("Выберите локальный файл JSON."));
+    readProfiles().Save(path);
+   }
+  }catch(Exception error){
+   if(!closed){InputSettingsNotice.Text=error.Message;InputSettingsNotice.IsVisible=true;}
+  }finally{
+   if(!closed)ProfileBar.IsEnabled=SettingsTabs.IsEnabled=true;
+  }
  }
  internal void SetActiveProfile(string label)=>ActiveProfileText.Text=L.T("Сейчас: ")+label;
  void RefreshProfileList(){

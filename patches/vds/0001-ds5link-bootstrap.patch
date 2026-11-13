@@ -823,7 +823,7 @@ index a951df6..91241d5 100644
  using vds::win::win32_error_message;
  
 diff --git a/src/platform/win32/vdsd.cc b/src/platform/win32/vdsd.cc
-index 34839ba..21dfd6a 100644
+index 34839ba..2cec183 100644
 --- a/src/platform/win32/vdsd.cc
 +++ b/src/platform/win32/vdsd.cc
 @@ -1,3 +1,4 @@
@@ -1958,7 +1958,7 @@ index 34839ba..21dfd6a 100644
      const DWORD wait_result =
          WaitForMultipleObjects(static_cast<DWORD>(wait_handles.size()),
                                 wait_handles.data(), FALSE, INFINITE);
-@@ -2898,7 +2959,165 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2898,7 +2959,179 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        g_stop_requested = true;
        break;
      case WaitKind::Control:
@@ -1987,6 +1987,20 @@ index 34839ba..21dfd6a 100644
 +                auto payload=ds5link::effects::runtime::current(true,level,age);
 +                payload["active"]=bridge_enabled && std::any_of(workers.begin(),workers.end(),[](const auto& worker){return !worker->stop_requested && !worker->done;});
 +                response["payload"]=payload;return response.dump()+"\n";
++              }
++              if(action=="previewTriggers") {
++                {
++                  std::lock_guard lock(g_telemetry.mutex);
++                  const bool running=std::any_of(workers.begin(),workers.end(),[](const auto& worker){
++                    return !worker->stop_requested && !worker->done;
++                  });
++                  if(!bridge_enabled || disconnect_in_progress() || !running ||
++                     g_telemetry.last_input==Clock::time_point{} ||
++                     Clock::now()-g_telemetry.last_input>=std::chrono::seconds(2))
++                    throw std::runtime_error("TRIGGER_PREVIEW_UNAVAILABLE");
++                }
++                ds5link::effects::runtime::start_trigger_preview(request.at("options"));
++                response["payload"]=nlohmann::json::object();return response.dump()+"\n";
 +              }
 +              if(action=="setEffectOptions") {
 +                ds5link::effects::runtime::update(request.at("options"));
@@ -2124,7 +2138,7 @@ index 34839ba..21dfd6a 100644
          std::uint32_t current_trace_flags = trace_flags.load();
          const std::string reply = handle_supervisor_control_command(
              command, workers, options.db_path, current_trace_flags,
-@@ -2935,6 +3154,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2935,6 +3168,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
    try {
      g_stop_requested = false;
      const Options options = parse_platform_args(argc, argv);
@@ -2132,7 +2146,7 @@ index 34839ba..21dfd6a 100644
      UniqueHandle stop_event(CreateEventA(nullptr, TRUE, FALSE, nullptr));
      if (!stop_event) {
        throw std::runtime_error("failed to create stop event: " +
-@@ -2946,26 +3166,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2946,26 +3180,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
      }
  
      vds::Logger logger(options.log_path);
@@ -2176,7 +2190,7 @@ index 34839ba..21dfd6a 100644
        if (service_mode) {
          update_service_status(SERVICE_RUNNING);
          logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
-@@ -3011,7 +3234,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
+@@ -3011,7 +3248,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
  
    update_service_status(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
    g_service_exit_code = static_cast<DWORD>(
@@ -2185,7 +2199,7 @@ index 34839ba..21dfd6a 100644
    update_service_status(SERVICE_STOPPED, g_service_exit_code == 0
                                               ? ERROR_SUCCESS
                                               : ERROR_SERVICE_SPECIFIC_ERROR);
-@@ -3035,6 +3258,7 @@ bool dispatch_service_if_needed() {
+@@ -3035,6 +3272,7 @@ bool dispatch_service_if_needed() {
  }
  
  int main(int argc, char **argv) {
@@ -3769,10 +3783,10 @@ index 0000000..62644d2
 +
 diff --git a/src/platform/win32/ds5link_effects_runtime.hh b/src/platform/win32/ds5link_effects_runtime.hh
 new file mode 100644
-index 0000000..9be83d4
+index 0000000..7c28fd2
 --- /dev/null
 +++ b/src/platform/win32/ds5link_effects_runtime.hh
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,76 @@
 +#pragma once
 +#include "ds5link_effects.hh"
 +#include "vds_fs.hh"
@@ -3783,6 +3797,15 @@ index 0000000..9be83d4
 +using Clock=std::chrono::steady_clock;
 +inline std::mutex mutex;inline Options options;inline std::filesystem::path settings_path;
 +inline Clock::time_point heartbeat{},audio_time{};inline Session status;inline std::optional<int> battery_value;
++struct TriggerPreview { Trigger left,right; Clock::time_point expires; };
++inline std::optional<TriggerPreview> trigger_preview;
++inline void start_trigger_preview(const nlohmann::json& value){
++ auto left=parse_trigger(value.at("left")),right=parse_trigger(value.at("right"));
++ std::lock_guard guard(mutex);
++ if((left.mode=="game" || status.left_owned) && (right.mode=="game" || status.right_owned))
++  throw std::runtime_error("TRIGGER_PREVIEW_UNAVAILABLE");
++ trigger_preview=TriggerPreview{left,right,Clock::now()+std::chrono::seconds(3)};
++}
 +inline std::array<int,3> led_rgb{};inline int audio_level=0,wave_peak=0;inline std::uint64_t wave_sent=0,wave_dropped=0;
 +struct Wave {vds::HapticsChunk samples;Clock::time_point captured;};inline std::deque<Wave> waves;
 +inline bool lease(Clock::time_point now){return heartbeat!=Clock::time_point{} && now-heartbeat<std::chrono::milliseconds(500);}
@@ -3804,8 +3827,31 @@ index 0000000..9be83d4
 +inline nlohmann::json current(bool renew=false,int level=0,int age=0){std::lock_guard guard(mutex);const auto now=Clock::now();if(renew){heartbeat=now;audio_level=age<150?std::clamp(level,0,80):0;}
 + return {{"ledRgb",led_rgb},{"renderedRumble",0},{"wavePeak",wave_peak},{"waveQueued",waves.size()},{"waveSent",wave_sent},{"waveDropped",wave_dropped},{"receivedAudioLevel",audio_level},{"audioAgeMs",audio_time==Clock::time_point{}?-1:std::chrono::duration_cast<std::chrono::milliseconds>(now-audio_time).count()},{"batteryPercent",battery_value?nlohmann::json(*battery_value):nlohmann::json(nullptr)},{"options",json(options)},{"leftOwned",status.left_owned},{"rightOwned",status.right_owned},{"ledOwned",status.led_owned},{"rumbleOwned",status.rumble_owned || status.native_audio},{"leaseActive",lease(now)}};
 +}
-+inline void clear_status(){std::lock_guard guard(mutex);status={};battery_value={};led_rgb={};audio_level=wave_peak=0;waves.clear();audio_time={};wave_sent=wave_dropped=0;}
-+inline vds::DsState render(const vds::DsState& base,Session& session,std::optional<int> battery={},bool audio_supported=true){std::lock_guard guard(mutex);auto now=Clock::now();battery_value=battery;auto active_options=options;if(!audio_supported)active_options.audio_enabled=false;auto rendered=compose(base,session,active_options,lease(now),0,std::chrono::duration<double>(now.time_since_epoch()).count(),battery);status=session;for(int i=0;i<3;i++)led_rgb[i]=rendered[offsetof(vds_set_state_data,led_red)+i];return rendered;}
++inline void clear_status(){std::lock_guard guard(mutex);trigger_preview.reset();status={};battery_value={};led_rgb={};audio_level=wave_peak=0;waves.clear();audio_time={};wave_sent=wave_dropped=0;}
++inline vds::DsState render(const vds::DsState& base,Session& session,std::optional<int> battery={},bool audio_supported=true){
++ std::lock_guard guard(mutex);
++ const auto now=Clock::now();
++ battery_value=battery;
++ auto active_options=options;
++ if(!audio_supported)active_options.audio_enabled=false;
++ auto rendered=compose(base,session,active_options,lease(now),0,
++                       std::chrono::duration<double>(now.time_since_epoch()).count(),battery);
++ if(trigger_preview && now>=trigger_preview->expires)trigger_preview.reset();
++ if(trigger_preview){
++  const auto overlay=[&](const Trigger& effect,bool owned,bool& used,int offset,unsigned flag){
++   if(owned || effect.mode=="game")return;
++   const auto bytes=trigger_bytes(effect);
++   std::copy(bytes.begin(),bytes.end(),rendered.begin()+offset);
++   rendered[0]|=flag;
++   used=true;
++  };
++  overlay(trigger_preview->left,session.left_owned,session.left_used,offsetof(vds_set_state_data,left_trigger_ffb),8);
++  overlay(trigger_preview->right,session.right_owned,session.right_used,offsetof(vds_set_state_data,right_trigger_ffb),4);
++ }
++ status=session;
++ for(int i=0;i<3;i++)led_rgb[i]=rendered[offsetof(vds_set_state_data,led_red)+i];
++ return rendered;
++}
 +inline bool needs_led_init(const Session& session){std::lock_guard guard(mutex);return lease(Clock::now()) && options.led_mode!="game" && !session.led_owned && !session.led_ready && session.led_init_ms==0;}
 +inline std::optional<vds::HapticsChunk> take_wave(const Session& session,bool& was_active){
 + std::lock_guard guard(mutex);auto now=Clock::now();bool owned=session.rumble_owned || session.native_audio;
@@ -4225,10 +4271,10 @@ index 0000000..485805c
 +}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
 diff --git a/tests/effects_tests.cc b/tests/effects_tests.cc
 new file mode 100644
-index 0000000..245df6f
+index 0000000..5b5d554
 --- /dev/null
 +++ b/tests/effects_tests.cc
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,98 @@
 +#include "ds5link_effects.hh"
 +#include "platform/win32/ds5link_effects_runtime.hh"
 +#include <iostream>
@@ -4312,6 +4358,18 @@ index 0000000..245df6f
 + session.native_audio=true;runtime::push_frames(nlohmann::json::array({frame}),1000);check(!runtime::take_wave(session,active),"manual audio overrode native game haptics");session.native_audio=false;
 + auto invalid=frame;invalid["samples"][0]=128;rejected=false;try{runtime::push_frames(nlohmann::json::array({invalid}),1000);}catch(...){rejected=true;}check(rejected,"out-of-range PCM accepted");
 + std::this_thread::sleep_for(std::chrono::milliseconds(510));out=runtime::render(base,session);check(out[offsetof(vds_set_state_data,left_trigger_ffb)]==5,"UI lease expiry retained trigger resistance");
++ runtime::clear_status();
++ Session preview_session;
++ runtime::start_trigger_preview({{"left",json(o.left)},{"right",json(Trigger{})}});
++ out=runtime::render(base,preview_session);
++ const auto left_offset=offsetof(vds_set_state_data,left_trigger_ffb);
++ check(out[left_offset]==trigger_bytes(o.left)[0],"trigger preview did not render without UI lease");
++ preview_session.left_owned=true;
++ check(runtime::render(base,preview_session)[left_offset]==base[left_offset],"preview overrode the game");
++ preview_session.left_owned=false;
++ runtime::trigger_preview->expires=runtime::Clock::now();
++ check(runtime::render(base,preview_session)[left_offset]==5,"expired trigger preview did not clear");
++ check(runtime::current()["options"]==json(o),"preview changed saved effects");
 + runtime::configure(path.string());check(runtime::current()["options"]==json(o),"saved effects did not reload");std::filesystem::remove(path);
 + std::cout<<"Effects encoding, channel priority, passthrough, animations, lease expiry and persistence passed\n";
 +}
