@@ -176,7 +176,8 @@ internal sealed partial class MainWindow
             ShowUpdateFeedback(L.T("Подтвердите обновление в окне Windows."));
             using var process = Process.Start(new ProcessStartInfo(installer, "--update-installed")
             {
-                UseShellExecute = true
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(installer)!
             }) ?? throw new IOException("Could not start updater.");
             await process.WaitForExitAsync();
             if (!exiting)

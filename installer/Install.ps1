@@ -5,6 +5,8 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'InstallPaths.ps1')
 $install=Resolve-DS5InstallPath $InstallDir
 if($ValidateOnly){Assert-DS5InstallTarget $install;Write-Output $install;exit 0}
+Set-Location -LiteralPath $PSScriptRoot
+[IO.Directory]::SetCurrentDirectory($PSScriptRoot)
 if(!$OwnerSid){$OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}
 $null=[Security.Principal.SecurityIdentifier]::new($OwnerSid)
 $admin=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -98,8 +100,12 @@ function Move-OwnedDirectory([string]$Source,[string]$Destination) {
  }
  $deadline=[DateTime]::UtcNow.AddSeconds(10)
  do {
-  try{Move-Item -LiteralPath $Source -Destination $Destination -ErrorAction Stop;return}
-  catch [IO.IOException]{if([DateTime]::UtcNow -ge $deadline){throw};Start-Sleep -Milliseconds 200}
+  try{[IO.Directory]::Move($Source,$Destination);return}
+  catch [IO.IOException]{
+   $cause=$_.Exception.GetBaseException()
+   if(($cause.HResult -band 65535) -notin @(5,32,33) -or [DateTime]::UtcNow -ge $deadline){throw}
+   Start-Sleep -Milliseconds 200
+  }
  }while($true)
 }
 Set-ProtectedDirectory $stage
@@ -191,7 +197,10 @@ try{
   $values=$registrationBefore[$key]
   if(Test-Path $key){$native=Get-Item $key;foreach($name in $native.GetValueNames()){if(!$values.ContainsKey($name)){Remove-ItemProperty -LiteralPath $key -Name $name}}}
   if(!$values.Count -and (Test-Path $key) -and !(Get-Item $key).SubKeyCount){Remove-Item -LiteralPath $key}
-  if($values.Count){New-Item -Path $key -Force|Out-Null;foreach($name in $values.Keys){New-ItemProperty -LiteralPath $key -Name $name -Value $values[$name].Value -PropertyType $values[$name].Kind -Force|Out-Null}}
+  if($values.Count){
+   if(!(Test-Path -LiteralPath $key)){New-Item -Path $key -Force|Out-Null}
+   foreach($name in $values.Keys){New-ItemProperty -LiteralPath $key -Name $name -Value $values[$name].Value -PropertyType $values[$name].Kind -Force|Out-Null}
+  }
  }
  foreach($path in $shortcutBefore.Keys){
   if($null -ne $shortcutBefore[$path]){[IO.File]::WriteAllBytes($path,$shortcutBefore[$path])}

@@ -48,6 +48,8 @@ internal static class Setup {
   } catch (Exception e) { MessageBox.Show(e.Message, "DS5Link", MessageBoxButtons.OK,MessageBoxIcon.Error); return 1; }
  }
  static int UpdateInstalled() {
+  // An older UI can launch this process with the installation as its working directory.
+  Directory.SetCurrentDirectory(Path.GetDirectoryName(Application.ExecutablePath));
   string destination;
   using(var key=Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\DS5Link"))
    destination=key==null?null:key.GetValue("InstallLocation") as string;
@@ -56,7 +58,8 @@ internal static class Setup {
    throw new IOException("Installed DS5Link was not found.");
   var info=new ProcessStartInfo(Application.ExecutablePath,
    "--update-elevated \""+destination+"\" "+WindowsIdentity.GetCurrent().User.Value) {
-    UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden
+    UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden,
+    WorkingDirectory=Path.GetDirectoryName(Application.ExecutablePath)
    };
   int result;
   try {
@@ -79,6 +82,7 @@ internal static class Setup {
  internal static int RunElevated(string destination,string owner,bool rebootRequired,bool updateOnly=false) {
   new SecurityIdentifier(owner);
   var info=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe"),"-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(Work,"Install.ps1")+"\" -InstallerMode -InstallDir \""+destination+"\" -OwnerSid "+owner+(rebootRequired?" -RebootRequired":"")+(updateOnly?" -UpdateOnly":"")){UseShellExecute=false,CreateNoWindow=true};
+  info.WorkingDirectory=Work;
   using(var process=Process.Start(info)){process.WaitForExit();return process.ExitCode;}
  }
  internal static void Write(string value) { File.AppendAllText(Log, DateTime.Now.ToString("o") + " " + value + "\r\n", Encoding.UTF8); }

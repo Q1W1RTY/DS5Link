@@ -16,7 +16,11 @@ $releases=@(foreach($dir in Get-ChildItem -LiteralPath $releaseRoot -Directory){
  $exe=Join-Path $dir.FullName 'DS5Link-Setup.exe'
  if(!(Test-Path -LiteralPath $exe)){continue}
  if((Get-Content -LiteralPath $hashPath -First 1).Split(' ')[0] -ne (Get-FileHash -LiteralPath $exe).Hash){throw "Installer hash mismatch: $exe"}
- [pscustomobject]@{Directory=$dir;BuiltAt=[DateTimeOffset]::Parse($metadata.builtAt);Version=$metadata.version}
+ $builtAt=$metadata.builtAt
+ if($builtAt -isnot [datetime] -and $builtAt -isnot [DateTimeOffset]){
+  $builtAt=[DateTimeOffset]::Parse($builtAt,[Globalization.CultureInfo]::InvariantCulture)
+ }
+ [pscustomobject]@{Directory=$dir;BuiltAt=[DateTimeOffset]$builtAt;Version=$metadata.version}
 }) | Sort-Object BuiltAt -Descending
 if($releases.Count -le 2){Write-Output 'At most two verified releases; nothing to prune.';return}
 $newest=$releases[0]
