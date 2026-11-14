@@ -73,6 +73,7 @@ internal sealed partial class InputSettingsWindow {
    TouchBindingsEnabled.IsChecked=input.Options.TouchEnabled;ConsumeTouchpad.IsChecked=input.Options.ConsumeTouchpad;
    LeftDeadzone.Value=input.Options.LeftDeadzone;RightDeadzone.Value=input.Options.RightDeadzone;
    LoadInputMapping(input.Options.Mapping);
+   LoadMouseOptions(input.Options);
    LoadEffectDraft(editingProfile.Effects);
    if(!preview)LoadAudioDevices(editingProfile.Effects.AudioDeviceId);
   }finally{autoReady=ready;}

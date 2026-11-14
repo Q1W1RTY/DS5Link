@@ -5,6 +5,34 @@ using System.Text.Json;
 using System.IO.Compression;
 using DS5Link;
 static void Check(bool value,string message){if(!value)throw new Exception(message);}
+if(args is ["--process-audio-smoke",var processId]){
+ var result=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+ using var capture=new ProcessLoopback(uint.Parse(processId),(buffer,count)=>{
+  if(Array.Exists(buffer.AsSpan(0,count).ToArray(),value=>value!=0))result.TrySetResult(true);
+ },error=>result.TrySetException(error));
+ capture.Start();
+ await result.Task.WaitAsync(TimeSpan.FromSeconds(12));
+ Console.WriteLine("Process loopback delivered non-silent audio");
+ return;
+}
+{
+ var motion=new MouseMotion();
+ var now=System.Diagnostics.Stopwatch.GetTimestamp();
+ var tick=System.Diagnostics.Stopwatch.Frequency/100;
+ var options=new InputOptions{TouchMouse=true,GyroMouse=true};
+ var contact=new TouchPreview{Active=true,Id=1,X=100,Y=100};
+ InputPreview sample=new(){Enabled=true,AgeMs=0,Touches=new[]{contact,new TouchPreview()}};
+ Check(motion.Read(sample,options,now)==default,"Touch down moved the cursor");
+ sample=sample with {Touches=new[]{contact with {X=120},new TouchPreview()}};
+ Check(motion.Read(sample,options,now+tick).X==15,"Touch movement was not relative");
+ sample=sample with {Touches=new[]{contact with {Id=2,X=900},new TouchPreview()}};
+ Check(motion.Read(sample,options,now+tick*2)==default,"New contact caused a jump");
+ sample=sample with {GyroY=1000};
+ Check(motion.Read(sample,options,now+tick*3)==default,"Gyro moved without L2");
+ Check(motion.Read(sample with {AimHeld=true},options,now+tick*4).X<0,"Gyro did not move while aiming");
+ Check(motion.Read(sample with {AimHeld=true,AgeMs=90},options,now+tick*5)==default,"Stale motion was injected");
+ Console.WriteLine("Mouse contact, gyro activation and stale input checks passed");
+}
 static async Task TestClient(string scenario) {
  var name="DS5Link.ClientTest."+Guid.NewGuid().ToString("N");
  using var server=new NamedPipeServerStream(name,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous);

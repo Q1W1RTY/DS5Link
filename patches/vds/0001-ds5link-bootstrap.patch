@@ -3272,10 +3272,10 @@ index 0000000..ae4fe7f
 +}
 diff --git a/src/ds5link_input.hh b/src/ds5link_input.hh
 new file mode 100644
-index 0000000..3e5f186
+index 0000000..c086c14
 --- /dev/null
 +++ b/src/ds5link_input.hh
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,118 @@
 +#pragma once
 +#include <algorithm>
 +#include <cmath>
@@ -3329,6 +3329,8 @@ index 0000000..3e5f186
 + bool touch_enabled=false,consume_touchpad=true;
 + unsigned touch_click_mask=3; // left=1, right=2; derived from keyboard bindings
 + InputMapping mapping;
++ bool gyro_mouse=false,touch_mouse=false;
++ int mouse_sensitivity=100;
 + bool operator==(const InputOptions&) const=default;
 +};
 +enum class TouchAction {LeftClick,RightClick,Tap,SwipeLeft,SwipeRight,SwipeUp,SwipeDown};
@@ -3865,10 +3867,10 @@ index 0000000..7c28fd2
 +}
 diff --git a/src/platform/win32/ds5link_input_runtime.hh b/src/platform/win32/ds5link_input_runtime.hh
 new file mode 100644
-index 0000000..77ec8ce
+index 0000000..b5d31be
 --- /dev/null
 +++ b/src/platform/win32/ds5link_input_runtime.hh
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,108 @@
 +#pragma once
 +#include "ds5link_input.hh"
 +#include "vds_fs.hh"
@@ -3900,7 +3902,7 @@ index 0000000..77ec8ce
 + mapping["leftStage"]=stage(o.mapping.left);
 + mapping["rightStage"]=stage(o.mapping.right);
 + return {{"leftDeadzone",o.left_deadzone},{"rightDeadzone",o.right_deadzone},{"touchEnabled",o.touch_enabled},
-+         {"consumeTouchpad",o.consume_touchpad},{"touchClickMask",o.touch_click_mask},{"mapping",mapping}};
++         {"consumeTouchpad",o.consume_touchpad},{"touchClickMask",o.touch_click_mask},{"mapping",mapping},{"gyroMouse",o.gyro_mouse},{"touchMouse",o.touch_mouse},{"mouseSensitivity",o.mouse_sensitivity}};
 +}
 +inline InputMapping parse_mapping(const nlohmann::json& value){
 + const auto integer=[](const nlohmann::json& j,const char* key,int low,int high){
@@ -3937,6 +3939,13 @@ index 0000000..77ec8ce
 +  o.touch_click_mask=j.at("touchClickMask").get<unsigned>();
 + }
 + if(j.contains("mapping"))o.mapping=parse_mapping(j.at("mapping"));
++ o.gyro_mouse=j.value("gyroMouse",false);
++ o.touch_mouse=j.value("touchMouse",false);
++ if(j.contains("mouseSensitivity")){
++  const auto& sensitivity=j.at("mouseSensitivity");
++  if(!sensitivity.is_number_integer() || sensitivity<25 || sensitivity>300)throw std::runtime_error("INVALID_INPUT_OPTIONS");
++  o.mouse_sensitivity=sensitivity.get<int>();
++ }
 + return o;
 +}
 +inline void configure(const std::string& path){
@@ -3960,8 +3969,9 @@ index 0000000..77ec8ce
 +inline nlohmann::json preview(){
 + std::lock_guard guard(mutex);
 + const auto age=sample_time==Clock::time_point{}?-1:std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-sample_time).count();
-+ auto contact=[&](int offset){return nlohmann::json{{"active",(sample[offset]&128)==0},{"x",sample[offset+1]|((sample[offset+2]&15)<<8)},{"y",(sample[offset+2]>>4)|(sample[offset+3]<<4)}};};
-+ return {{"ageMs",age},{"leftX",sample[1]},{"leftY",sample[2]},{"rightX",sample[3]},{"rightY",sample[4]},{"click",(sample[10]&2)!=0},{"touches",nlohmann::json::array({contact(33),contact(37)})}};
++ auto contact=[&](int offset){return nlohmann::json{{"active",(sample[offset]&128)==0},{"id",sample[offset]&127},{"x",sample[offset+1]|((sample[offset+2]&15)<<8)},{"y",(sample[offset+2]>>4)|(sample[offset+3]<<4)}};};
++ const auto gyro=[](int offset){const int v=sample[offset]|(sample[offset+1]<<8);return v>=32768?v-65536:v;};
++ return {{"ageMs",age},{"gyroX",gyro(16)},{"gyroY",gyro(18)},{"aimHeld",sample[5]>=32},{"leftX",sample[1]},{"leftY",sample[2]},{"rightX",sample[3]},{"rightY",sample[4]},{"click",(sample[10]&2)!=0},{"touches",nlohmann::json::array({contact(33),contact(37)})}};
 +}
 +inline nlohmann::json read_events(std::uint64_t after){
 + std::lock_guard guard(mutex);const auto now=Clock::now();heartbeat=now;nlohmann::json rows=nlohmann::json::array();

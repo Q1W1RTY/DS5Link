@@ -50,6 +50,9 @@ internal sealed class FastLoopbackCapture:WasapiCapture {
  protected override AudioClientStreamFlags GetAudioClientStreamFlags()=>AudioClientStreamFlags.Loopback;
 }
 internal sealed class AudioReactiveCapture:IDisposable {
+ internal const string GameSource="ds5link:game-process";
+ ProcessLoopback? processCapture;
+ internal uint ProcessId {get;private set;}
  string endpointId="";long nextEndpointCheck;
  internal bool DefaultEndpointChanged(){
   if(Environment.TickCount64<nextEndpointCheck)return false;nextEndpointCheck=Environment.TickCount64+1000;
@@ -62,26 +65,47 @@ internal sealed class AudioReactiveCapture:IDisposable {
  long lastSample,packets;string deviceName="",formatName="",error="";
  internal object Diagnostics {get{lock(sync)return new{device=deviceName,format=formatName,packets,peak=waveform.RawPeak,bassRms=waveform.FilteredRms,level=waveform.Level,queued=frames.Count,error};}}
  internal double SignalPeak {get{lock(sync)return Fresh?waveform.RawPeak:0;}}
- internal string SourceName=>deviceName;internal string Error {get{lock(sync)return error;}}
+ internal string SourceName=>options.AudioDeviceId==GameSource && ProcessId==0
+  ?L.T("Ожидание игры из профиля"):deviceName;
+ internal string Error {get{lock(sync)return error;}}
  bool Fresh=>lastSample!=0 && Stopwatch.GetElapsedTime(lastSample).TotalMilliseconds<100;
  internal int Level {get{lock(sync)return Fresh?waveform.Level:0;}}
  internal long SampleTick=>Environment.TickCount64;
  internal HapticFrame[] TakeFrames(){lock(sync){var now=Environment.TickCount64;while(frames.Count>0 && now-frames.Peek().Tick>=80)frames.Dequeue();var result=frames.Take(4).ToArray();for(int i=0;i<result.Length;i++)frames.Dequeue();return result;}}
- internal static AudioOutputDevice[] Devices(){using var e=new MMDeviceEnumerator();var list=new List<AudioOutputDevice>{new("",L.T("Устройство вывода Windows"))};foreach(var d in e.EnumerateAudioEndPoints(DataFlow.Render,DeviceState.Active)){using(d)list.Add(new(d.ID,d.FriendlyName));}return list.ToArray();}
+ internal static AudioOutputDevice[] Devices(){using var e=new MMDeviceEnumerator();var list=new List<AudioOutputDevice>{new("",L.T("Устройство вывода Windows")),new(GameSource,L.T("Только звук игры из профиля"))};foreach(var d in e.EnumerateAudioEndPoints(DataFlow.Render,DeviceState.Active)){using(d)list.Add(new(d.ID,d.FriendlyName));}return list.ToArray();}
  internal void UpdateOptions(EffectOptions value){lock(sync)options=value;}
- internal void Start(EffectOptions value){
+ internal void Start(EffectOptions value,uint gamePid=0){
   Stop();lock(sync){options=value;error="";}if(!value.AudioEnabled)return;
+  if(value.AudioDeviceId==GameSource){
+   if(gamePid==0)return;
+   ProcessLoopback? source=null;
+   source=new ProcessLoopback(gamePid,(buffer,length)=>{
+    lock(sync){if(ReferenceEquals(processCapture,source))Push(buffer,length,ProcessLoopback.Format);}
+   },failure=>{
+    lock(sync){if(ReferenceEquals(processCapture,source)){running=false;frames.Clear();lastSample=0;error=failure.Message;}}
+   });
+   lock(sync){
+    processCapture=source;ProcessId=gamePid;running=true;
+    deviceName=L.T("Только звук игры из профиля");formatName=ProcessLoopback.Format.ToString();packets=0;
+   }
+   source.Start();
+   return;
+  }
   try{using var e=new MMDeviceEnumerator();device=string.IsNullOrEmpty(value.AudioDeviceId)?e.GetDefaultAudioEndpoint(DataFlow.Render,Role.Multimedia):e.GetDevice(value.AudioDeviceId);
    endpointId=device.ID;deviceName=device.FriendlyName;capture=new FastLoopbackCapture(device);formatName=capture.WaveFormat.ToString();packets=0;capture.DataAvailable+=Data;capture.RecordingStopped+=Stopped;lock(sync)running=true;capture.StartRecording();
   }catch(Exception ex){Stop();lock(sync)error=ex.Message;}
  }
  void Data(object? sender,WaveInEventArgs args){lock(sync){if(!ReferenceEquals(sender,capture) || capture==null || args.BytesRecorded<=0)return;
-  try{packets++;var f=capture.WaveFormat;bool floating=f.Encoding==WaveFormatEncoding.IeeeFloat || f is WaveFormatExtensible ext && ext.SubFormat==new Guid("00000003-0000-0010-8000-00aa00389b71");
-   foreach(var frame in waveform.Process(args.Buffer.AsSpan(0,args.BytesRecorded),f.SampleRate,f.Channels,f.BitsPerSample,floating,options,Environment.TickCount64)){while(frames.Count>=4)frames.Dequeue();frames.Enqueue(frame);}lastSample=Stopwatch.GetTimestamp();
-  }catch(Exception ex){frames.Clear();waveform.Reset();error=ex.Message;}
+  Push(args.Buffer,args.BytesRecorded,capture.WaveFormat);
  }}
+ void Push(byte[] buffer,int length,WaveFormat f){
+  try{packets++;bool floating=f.Encoding==WaveFormatEncoding.IeeeFloat || f is WaveFormatExtensible ext && ext.SubFormat==new Guid("00000003-0000-0010-8000-00aa00389b71");
+   foreach(var frame in waveform.Process(buffer.AsSpan(0,length),f.SampleRate,f.Channels,f.BitsPerSample,floating,options,Environment.TickCount64)){while(frames.Count>=4)frames.Dequeue();frames.Enqueue(frame);}lastSample=Stopwatch.GetTimestamp();
+  }catch(Exception ex){frames.Clear();waveform.Reset();error=ex.Message;}
+ }
  void Stopped(object? sender,StoppedEventArgs args){lock(sync){if(!ReferenceEquals(sender,capture))return;running=false;frames.Clear();waveform.Reset();lastSample=0;if(args.Exception!=null)error=args.Exception.Message;}}
- internal void Stop(){FastLoopbackCapture? old;MMDevice? oldDevice;lock(sync){old=capture;oldDevice=device;capture=null;device=null;running=false;frames.Clear();waveform.Reset();lastSample=0;}
+ internal void Stop(){FastLoopbackCapture? old;MMDevice? oldDevice;ProcessLoopback? oldProcess;lock(sync){old=capture;oldDevice=device;oldProcess=processCapture;processCapture=null;ProcessId=0;capture=null;device=null;running=false;frames.Clear();waveform.Reset();lastSample=0;}
+  oldProcess?.Dispose();
   if(old!=null){old.DataAvailable-=Data;old.RecordingStopped-=Stopped;try{old.StopRecording();}catch(Exception ex){lock(sync)error=ex.Message;}finally{try{old.Dispose();}catch(Exception ex){lock(sync)error=ex.Message;}}}try{oldDevice?.Dispose();}catch(Exception ex){lock(sync)error=ex.Message;}
  }
  public void Dispose()=>Stop();

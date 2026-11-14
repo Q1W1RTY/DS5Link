@@ -12,6 +12,9 @@ internal sealed partial class MainWindow {
  void InitializeInputControls() {
   inputProfile=preview?new():InputProfile.Load();
   inputTimer.Tick+=async(_,_)=>await PollInput();
+  mouseTimer.Tick+=async(_,_)=>await PollMouse();
+  Closed+=(_,_)=>mouseTimer.Stop();
+  SyncMouseTimer();
   if(!preview && inputProfile.Options.TouchEnabled)inputTimer.Start();
  }
  internal InputSettingsWindow CreateInputSettingsWindow(){
@@ -32,6 +35,7 @@ internal sealed partial class MainWindow {
   try {
    var state=await BridgeClient.SetInputOptionsAsync(next.RuntimeOptions);
    inputProfile=next;keyboardErrorShown=false;Display(state);
+   SyncMouseTimer();
    if(next.Options.TouchEnabled)inputTimer.Start();else inputTimer.Stop();
   }finally{commanding=false;Display(current);}
  }
@@ -45,6 +49,7 @@ internal sealed partial class MainWindow {
    var received=Stopwatch.StartNew();
    foreach(var action in inputCursor.Read(batch).TakeLast(4)){
     if(generation!=stateGeneration || !ProfileAllowsKeyboard() || commanding || exiting || exitRequested || IsActive || inputSettingsWindow?.IsActive==true || action.AgeMs+received.ElapsedMilliseconds>150)continue;
+    if(inputProfile.Options.TouchMouse && action.Action is not ("leftClick" or "rightClick"))continue;
     if(inputProfile.Bindings.TryGetValue(action.Action,out var binding) && !await KeyboardOutput.SendAsync(binding) && !keyboardErrorShown){keyboardErrorShown=true;Notice(L.T("Windows не приняла назначение тачпада. Проверьте права приложения и игры."));}
    }
   }catch(Exception){inputCursor.Reset();KeyboardOutput.ReleaseAll();}

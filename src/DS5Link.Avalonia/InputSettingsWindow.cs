@@ -35,8 +35,21 @@ internal sealed partial class InputSettingsWindow:Window {
   InitializeEffectControls(effects??new(),applyEffects);
   InitializeInputMapping(profile.Options.Mapping);
   DeadzoneChanged(this,null!);
+  GyroMouseSwitch.Content=L.T("Гироскоп как мышь при удержании L2");
+  TouchMouseSwitch.Content=L.T("Тачпад как мышь");
+  LoadMouseOptions(profile.Options);
   InitializeAutoApply();
+  GyroMouseSwitch.IsCheckedChanged+=(_,_)=>QueueAutoApply(false);
+  TouchMouseSwitch.IsCheckedChanged+=(_,_)=>QueueAutoApply(false);
+  MouseSensitivitySlider.ValueChanged+=(_,_)=>{UpdateMouseSensitivity();QueueAutoApply(false);};
   if(preview)SaveStatusText.Text=L.T("Предпросмотр");
+ }
+ void UpdateMouseSensitivity()=>MouseSensitivityLabel.Text=L.F("Чувствительность мыши: {0}%",(int)MouseSensitivitySlider.Value);
+ void LoadMouseOptions(InputOptions options){
+  GyroMouseSwitch.IsChecked=options.GyroMouse;
+  TouchMouseSwitch.IsChecked=options.TouchMouse;
+  MouseSensitivitySlider.Value=options.MouseSensitivity;
+  UpdateMouseSensitivity();
  }
  string BindingLabel(string action)=>bindings.TryGetValue(action,out var binding)?binding.Label:L.T("Не назначено");
  void InitializeTouchActions(){

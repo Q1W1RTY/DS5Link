@@ -12,6 +12,10 @@ internal static class KeyboardOutput {
  [StructLayout(LayoutKind.Explicit)]struct Data {[FieldOffset(0)]public Keyboard Keyboard;[FieldOffset(0)]public Mouse Mouse;}
  [StructLayout(LayoutKind.Sequential)]struct Input {public uint Type;public Data Data;}
  [DllImport("user32.dll",SetLastError=true)]static extern uint SendInput(uint count,Input[] inputs,int size);
+ internal static void MoveMouse(int x,int y){
+  if(x==0 && y==0)return;
+  SendInput(1,new[]{new Input{Data=new Data{Mouse=new Mouse{X=x,Y=y,Flags=1}}}},Marshal.SizeOf<Input>());
+ }
  [DllImport("user32.dll")]static extern short GetAsyncKeyState(int key);
  [DllImport("user32.dll")]static extern uint MapVirtualKey(uint key,uint type);
  [DllImport("user32.dll")]static extern IntPtr GetForegroundWindow();

@@ -343,5 +343,10 @@
   "Заменить общие настройки и все игровые профили содержимым файла?": "Replace the default settings and all game profiles?",
   "Проверить курки · 3 с": "Test triggers \u00b7 3 s",
   "Нажмите курки. Тест завершится сам.": "Pull the triggers. The test ends automatically.",
-  "Тест недоступен. Подключите контроллер и выберите свободный курок с эффектом.": "Connect the controller and select an effect on a trigger the game is not using."
+  "Тест недоступен. Подключите контроллер и выберите свободный курок с эффектом.": "Connect the controller and select an effect on a trigger the game is not using.",
+  "Только звук игры из профиля": "Game profile audio only",
+  "Гироскоп как мышь при удержании L2": "Gyro mouse while holding L2",
+  "Тачпад как мышь": "Touchpad as mouse",
+  "Чувствительность мыши: {0}%": "Mouse sensitivity: {0}%",
+  "Ожидание игры из профиля": "Waiting for the game in the profile"
 }

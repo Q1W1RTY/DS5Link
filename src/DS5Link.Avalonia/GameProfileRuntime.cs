@@ -21,6 +21,13 @@ internal static class ForegroundExecutable {
  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr process,uint flags,StringBuilder path,ref int size);
  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
  internal static (bool Own,string Path) Read()=>Read(GetForegroundWindow());
+ internal static uint GameProcess(string executable){
+  if(executable.Length==0)return 0;
+  var window=GetForegroundWindow();
+  GetWindowThreadProcessId(window,out uint pid);
+  return string.Equals(Read(window).Path,executable,StringComparison.OrdinalIgnoreCase) &&
+    window==GetForegroundWindow()?pid:0;
+ }
  static (bool Own,string Path) Read(IntPtr window){
   GetWindowThreadProcessId(window,out uint id);
   if(id==Environment.ProcessId)return (true,"");
