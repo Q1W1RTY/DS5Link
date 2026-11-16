@@ -55,6 +55,18 @@ internal static class MigrationQa
     Capture(window,Path.Combine(folder,"settings-"+i+".png"));
    }
    report.Add("All six real settings pages initialized and rendered");
+   var audioDevice=window.FindControl<ComboBox>("AudioDevice")!;
+   var defaultAudio=new AudioOutputDevice("","Default");
+   var explicitAudio=new AudioOutputDevice("test-audio-device","Test device");
+   var gameAudio=new AudioOutputDevice(AudioReactiveCapture.GameSource,"Game audio");
+   audioDevice.ItemsSource=new[]{defaultAudio,explicitAudio,gameAudio};
+   foreach(var source in new[]{explicitAudio,gameAudio}){
+    audioDevice.SelectedItem=source;
+    window.FindControl<Button>("ResetEffectsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    if(!ReferenceEquals(audioDevice.SelectedItem,defaultAudio))
+     throw new Exception("Reset effects retained the previous audio source");
+   }
+   report.Add("Effects reset restores the default audio source");
    var sample=new InputPreview{Enabled=true,AgeMs=5,LeftX=180,LeftY=130,RightX=128,RightY=200};window.SetPreview(sample);
    if(!window.FindControl<StickView>("LeftVisual")!.HasSample)throw new Exception("Input preview missing");
    window.SetPreview(new InputPreview{AgeMs=1000});

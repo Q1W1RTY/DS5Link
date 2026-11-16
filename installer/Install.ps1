@@ -27,7 +27,8 @@ try{$ownsTransaction=$transactionLock.WaitOne(0)}catch [Threading.AbandonedMutex
 if(!$ownsTransaction){throw 'Another DS5Link installation or removal is running.'}
 $data=Join-Path $env:ProgramData 'DS5Link'
 $serviceName='DS5LinkBridge'
-if([int](Get-CimInstance Win32_OperatingSystem).BuildNumber -lt 22000){throw 'DS5Link v1 requires Windows 11.'}
+$os=Get-CimInstance Win32_OperatingSystem
+if([int]$os.BuildNumber -lt 22000){throw 'DS5Link v1 requires Windows 11.'}
 if($env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'AMD64'){throw 'This package supports Windows x64 only.'}
 $registry='HKLM:\SOFTWARE\DS5Link'
 if(Test-Path $registry){$previousOwner=(Get-ItemProperty $registry -Name OwnerSid -ErrorAction SilentlyContinue).OwnerSid;if($previousOwner -and $previousOwner -ne $OwnerSid){throw 'DS5Link belongs to another user. Ownership transfer is not automatic.'}}
@@ -56,16 +57,19 @@ function Verify-Package([string]$Path,[string]$Expected) {
  if(!(Test-Path -LiteralPath $Path) -or (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -ne $Expected){throw "Package hash mismatch: $Path"}
  if((Get-AuthenticodeSignature -LiteralPath $Path).Status -ne 'Valid'){throw "Package signature invalid: $Path"}
 }
-$requiresReboot=[bool]$RebootRequired -or ($UpdateOnly -and (Test-Path (Join-Path $data 'reboot-required.txt')))
+$rebootMarker=Join-Path $data 'reboot-required.txt'
+$marker=Get-Item -LiteralPath $rebootMarker -ErrorAction SilentlyContinue
+$pendingReboot=$UpdateOnly -and $marker -and ($marker.LastWriteTimeUtc -ge $os.LastBootUpTime.ToUniversalTime())
+$requiresReboot=[bool]$RebootRequired -or $pendingReboot
 $dependencies=Get-Content (Join-Path $PSScriptRoot 'dependencies.json') -Raw | ConvertFrom-Json
 . (Join-Path $PSScriptRoot 'Dependencies.ps1')
 foreach($dependency in $dependencies){
  if($UpdateOnly){break}
  $code=Install-DS5Dependency $dependency
- if($code -eq 3010){$requiresReboot=$true;Set-Content (Join-Path $data 'reboot-required.txt') 'Restart Windows before hardware acceptance.'}
+ if($code -eq 3010){$requiresReboot=$true;Set-Content -LiteralPath $rebootMarker 'Restart Windows before hardware acceptance.'}
 }
-if($requiresReboot){Set-Content (Join-Path $data 'reboot-required.txt') 'Restart Windows before hardware acceptance.'}
-elseif(Test-Path (Join-Path $data 'reboot-required.txt')){Remove-Item -LiteralPath (Join-Path $data 'reboot-required.txt')}
+if($RebootRequired){Set-Content -LiteralPath $rebootMarker 'Restart Windows before hardware acceptance.'}
+elseif(!$requiresReboot -and $marker){Remove-Item -LiteralPath $rebootMarker}
 $registrationBefore=@{}
 $shortcutBefore=@{}
 foreach($name in @('DS5Link.lnk')){

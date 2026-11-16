@@ -44,15 +44,19 @@ internal sealed partial class MainWindow {
   inputPolling=true;
   try {
    int generation=stateGeneration;
+   var foreground=ForegroundExecutable.GetForegroundWindow();
+   var requested=Stopwatch.StartNew();
    var batch=await BridgeClient.ReadInputEventsAsync(inputCursor.Sequence);
    if(generation!=stateGeneration)return;
-   var received=Stopwatch.StartNew();
    foreach(var action in inputCursor.Read(batch).TakeLast(4)){
-    if(generation!=stateGeneration || !ProfileAllowsKeyboard() || commanding || exiting || exitRequested || IsActive || inputSettingsWindow?.IsActive==true || action.AgeMs+received.ElapsedMilliseconds>150)continue;
+    if(generation!=stateGeneration || !ProfileAllowsKeyboard() || commanding || exiting || exitRequested || IsActive || inputSettingsWindow?.IsActive==true ||
+       !IsTouchEventCurrent(action,requested.ElapsedMilliseconds,foreground,ForegroundExecutable.GetForegroundWindow()))continue;
     if(inputProfile.Options.TouchMouse && action.Action is not ("leftClick" or "rightClick"))continue;
     if(inputProfile.Bindings.TryGetValue(action.Action,out var binding) && !await KeyboardOutput.SendAsync(binding) && !keyboardErrorShown){keyboardErrorShown=true;Notice(L.T("Windows не приняла назначение тачпада. Проверьте права приложения и игры."));}
    }
   }catch(Exception){inputCursor.Reset();KeyboardOutput.ReleaseAll();}
   finally{inputPolling=false;}
  }
+ internal static bool IsTouchEventCurrent(TouchInputEvent action,long elapsedMs,IntPtr foreground,IntPtr currentForeground) =>
+  foreground!=IntPtr.Zero && foreground==currentForeground && elapsedMs<=150-action.AgeMs;
 }

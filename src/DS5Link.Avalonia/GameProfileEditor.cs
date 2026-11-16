@@ -18,18 +18,31 @@ internal sealed partial class InputSettingsWindow {
   replaceProfiles=replace;
   ExportProfilesButton.Content=L.T("Экспорт");
   ImportProfilesButton.Content=L.T("Импорт");
-  ProfileBar.IsEnabled=!preview && error=="";AddProfileButton.IsEnabled=ProfileBar.IsEnabled;
-  if(error!=""){InputSettingsNotice.Text=error;InputSettingsNotice.IsVisible=true;SettingsTabs.IsEnabled=false;return;}
+  ImportProfilesButton.IsEnabled=!preview && replace!=null;
+  SetProfileRecoveryMode(error!="");
+  if(error!=""){
+   InputSettingsNotice.Text=error;InputSettingsNotice.IsVisible=true;
+   SettingsTabs.SelectedItem=ProfilesTab;
+   return;
+  }
   editingProfile=read().Find(active);
   RefreshProfileList();LoadProfileDraft();SetActiveProfile(read().Find(active).Label);
+ }
+ void SetProfileRecoveryMode(bool recovering){
+  ProfileBar.IsEnabled=AddProfileButton.IsEnabled=ExportProfilesButton.IsEnabled=!preview && !recovering;
+  if(recovering)RemoveProfileButton.IsEnabled=false;
+  foreach(var tab in SettingsTabs.Items.OfType<TabItem>())
+   if(tab!=ProfilesTab)tab.IsEnabled=!recovering;
  }
  async void ExportProfiles(object? sender,RoutedEventArgs e)=>await TransferProfiles(false);
  async void ImportProfiles(object? sender,RoutedEventArgs e)=>await TransferProfiles(true);
  async Task TransferProfiles(bool import){
-  if(preview || !ProfileBar.IsEnabled || readProfiles==null || replaceProfiles==null)return;
+  if(preview || !SettingsTabs.IsEnabled || readProfiles==null || replaceProfiles==null ||
+     !(import?ImportProfilesButton.IsEnabled:ExportProfilesButton.IsEnabled))return;
+  bool recovering=!ProfileBar.IsEnabled;
   ProfileBar.IsEnabled=SettingsTabs.IsEnabled=false;
   try{
-   if(!await ApplyPendingSettings())return;
+   if(!recovering && !await ApplyPendingSettings())return;
    var json=new FilePickerFileType("JSON"){Patterns=new[]{"*.json"}};
    if(import){
     var files=await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions{
@@ -37,11 +50,13 @@ internal sealed partial class InputSettingsWindow {
     if(files.Count==0 || closed)return;
     var path=files[0].TryGetLocalPath()??throw new System.IO.IOException(L.T("Выберите локальный файл JSON."));
     if(new System.IO.FileInfo(path).Length>2*1024*1024)throw new System.IO.IOException(L.T("Файл профилей слишком большой."));
-    var next=GameProfiles.Load(path,new(),new());
+    var next=GameProfiles.Read(path);
     if(MessageBox.Show(this,L.T("Заменить общие настройки и все игровые профили содержимым файла?"),
         L.T("Импорт профилей"),MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
     await replaceProfiles(next);
     if(closed)return;
+    recovering=false;
+    InputSettingsNotice.IsVisible=false;
     editingProfile=readProfiles().Find(editingProfile.Executable);
     RefreshProfileList();LoadProfileDraft();
    }else{
@@ -54,7 +69,7 @@ internal sealed partial class InputSettingsWindow {
   }catch(Exception error){
    if(!closed){InputSettingsNotice.Text=error.Message;InputSettingsNotice.IsVisible=true;}
   }finally{
-   if(!closed)ProfileBar.IsEnabled=SettingsTabs.IsEnabled=true;
+   if(!closed){SettingsTabs.IsEnabled=true;SetProfileRecoveryMode(recovering);}
   }
  }
  internal void SetActiveProfile(string label)=>ActiveProfileText.Text=L.T("Сейчас: ")+label;

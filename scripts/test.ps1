@@ -7,6 +7,9 @@ $ctest="${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\Common7
 if ($LASTEXITCODE) { throw 'Native tests failed' }
 & (Join-Path $env:ProgramFiles 'dotnet\dotnet.exe') run --project (Join-Path $root 'tests\DS5Link.Tests\DS5Link.Tests.csproj') -c $Configuration -p:Platform=AnyCPU
 if($LASTEXITCODE){throw 'Managed protocol and diagnostics tests failed'}
+& (Join-Path $env:ProgramFiles 'dotnet\dotnet.exe') run --project (Join-Path $root 'tests\DS5Link.Tests\DS5Link.Tests.csproj') -c $Configuration -p:Platform=AnyCPU --no-build -- --adversarial-review
+if($LASTEXITCODE){throw 'Adversarial regression tests failed'}
+& (Join-Path $PSScriptRoot 'review-reboot-marker.ps1')
 
 & (Join-Path $env:ProgramFiles 'dotnet\dotnet.exe') build (Join-Path $root 'src\DS5Link.Avalonia\DS5Link.Avalonia.csproj') -c $Configuration -p:Platform=AnyCPU
 if($LASTEXITCODE){throw 'Avalonia build failed'}

@@ -8,7 +8,7 @@ namespace DS5Link;
 internal static class ForegroundExecutable {
  [StructLayout(LayoutKind.Sequential)] struct Rect { public int Left,Top,Right,Bottom; }
  [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public uint Size; public Rect Monitor,WorkArea; public uint Flags; }
- [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+ [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] static extern IntPtr GetShellWindow();
  [DllImport("user32.dll")] static extern IntPtr GetDesktopWindow();
  [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr window);
@@ -65,12 +65,14 @@ internal sealed partial class MainWindow {
  void InitializeGameProfiles(){
   if(preview)return;
   try{profiles=GameProfiles.Load(GameProfiles.FilePath,inputProfile,effectOptions);}
-  catch(Exception error){profileLoadError=error.Message;return;}
+  catch(Exception error){profileLoadError=error.Message;}
   profileTimer.Tick+=async(_,_)=>await RefreshGameProfile();
   profileTimer.Start();
  }
  async Task ReplaceProfiles(GameProfiles next){
-  next.Save(GameProfiles.FilePath);profiles=next;++profileRevision;
+  next.Save(GameProfiles.FilePath, preservePrevious: profileLoadError!="");
+  profileLoadError="";
+  profiles=next;++profileRevision;
   await RefreshGameProfile();
  }
  async Task SaveProfile(GameProfile profile){

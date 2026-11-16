@@ -26,16 +26,26 @@ internal sealed record GameProfiles {
  internal GameProfiles Put(GameProfile profile)=>profile.Executable==""?this with {Default=profile}:this with {Games=Games.Where(p=>!string.Equals(p.Executable,profile.Executable,StringComparison.OrdinalIgnoreCase)).Append(profile).ToList()};
  internal GameProfiles Remove(string executable)=>this with {Games=Games.Where(p=>!string.Equals(p.Executable,executable,StringComparison.OrdinalIgnoreCase)).ToList()};
  internal static GameProfiles Load(string path,InputProfile input,EffectOptions effects){
-  if(!File.Exists(path))return new(){Default=new(){Input=input,Effects=effects}};
+  try{return Read(path);}
+  catch(FileNotFoundException){return new(){Default=new(){Input=input,Effects=effects}};}
+  catch(DirectoryNotFoundException){return new(){Default=new(){Input=input,Effects=effects}};}
+ }
+ internal static GameProfiles Read(string path){
   var result=JsonSerializer.Deserialize<GameProfiles>(File.ReadAllText(path),BridgeClient.JsonOptions);
   if(result?.Valid!=true)throw new IOException(L.T("Файл профилей повреждён или имеет неподдерживаемый формат. Исходный файл сохранён."));
   return result;
  }
- internal void Save(string path){
+ internal void Save(string path,bool preservePrevious=false){
   if(!Valid)throw new IOException(L.T("Проверьте профили: нужны уникальные полные пути к EXE, не более 128 игр."));
   Directory.CreateDirectory(Path.GetDirectoryName(path)!);
   var temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-  try{File.WriteAllText(temp,JsonSerializer.Serialize(this,BridgeClient.JsonOptions));File.Move(temp,path,true);}
+  try{
+   File.WriteAllText(temp,JsonSerializer.Serialize(this,BridgeClient.JsonOptions));
+   if(preservePrevious && File.Exists(path))
+    File.Replace(temp,path,path+".corrupt-"+Guid.NewGuid().ToString("N"));
+   else
+    File.Move(temp,path,true);
+  }
   finally{if(File.Exists(temp))File.Delete(temp);}
  }
 }

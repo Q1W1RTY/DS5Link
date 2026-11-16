@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.IO.Compression;
 using DS5Link;
+if(args is ["--adversarial-review"]) { await AdversarialReview.Run(); return; }
 static void Check(bool value,string message){if(!value)throw new Exception(message);}
 if(args is ["--process-audio-smoke",var processId]){
  var result=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

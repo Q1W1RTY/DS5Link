@@ -86,7 +86,15 @@ internal sealed partial class InputSettingsWindow {
   catch(Exception error){AudioStatus.Text=L.T("Не удалось получить устройства: ")+error.Message;}finally{autoReady=wasReady;}
  }
  void RefreshAudioDevices(object sender,RoutedEventArgs e){if(!preview)LoadAudioDevices((AudioDevice.SelectedItem as AudioOutputDevice)?.Id??"");}
- void ResetEffects(object sender,RoutedEventArgs e){LoadEffectDraft(new());QueueAutoApply(true);}
+ void ResetEffects(object sender,RoutedEventArgs e){
+  bool wasReady=autoReady;
+  autoReady=false;
+  try{
+   LoadEffectDraft(new());
+   AudioDevice.SelectedItem=AudioDevice.Items.OfType<AudioOutputDevice>().FirstOrDefault(device=>device.Id=="");
+  }finally{autoReady=wasReady;}
+  QueueAutoApply(true);
+ }
  void UpdateLedPreview(){
   if(redSlider==null || LedMode.SelectedItem is not EffectChoice choice)return;
   LedManualControls.IsEnabled=choice.Key!="game";RgbSliders.IsEnabled=choice.Key is "fixed" or "pulse";LedSwatches.IsEnabled=RgbSliders.IsEnabled;LedSpeed.IsEnabled=choice.Key is "pulse" or "rainbow";
