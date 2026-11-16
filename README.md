@@ -22,12 +22,13 @@ DS5Link brings a virtual USB DualSense to Windows over Bluetooth. Use native ada
 
 ### Make it yours
 
-- **Game profiles** — bind settings to a game's EXE and apply them when its window is focused.
-- **Touchpad & sticks** — keyboard bindings for touchpad clicks and gestures, independent stick deadzones and live input previews.
-- **Adaptive triggers** — tune L2 and R2 separately with resistance, weapon and pulse effects, or use a preset.
+- **Game profiles** — apply settings when a game's EXE is in the foreground. Import and export profiles as JSON.
+- **Controller input** — bind touchpad clicks and gestures to keys, remap buttons, and calibrate sticks with independent deadzones and a live preview.
+- **Mouse control** — move the cursor with the touchpad or aim with the gyro while holding L2. Sensitivity is adjustable per profile.
+- **Adaptive triggers** — tune L2 and R2 separately or use a preset. Preview effects for three seconds when the game isn't controlling the trigger.
 - **Lighting** — solid colors, pulse, rainbow and battery-level indication.
-- **Audio → haptics** — turn a selected Windows audio output into haptic feedback, with sensitivity, strength and noise-gate controls.
-- **Everyday essentials** — tray controls, optional startup with Windows, battery status and diagnostic ZIP export.
+- **Audio → haptics** — use a Windows audio output or capture only the active profiled game's audio. Adjust sensitivity, strength and noise gate.
+- **Everyday essentials** — tray controls, optional startup with Windows, battery status, configurable Bluetooth idle timers and diagnostic ZIP export.
 
 Games retain priority over manual effects on the channels they control. Audio → haptics is available in PS5 mode over Bluetooth.
 
@@ -73,6 +74,8 @@ Compact previews — click any image to open it at full size. UI previews from d
 
 [Detailed installation guide (Русский)](docs/user/INSTALL.md) · [All releases](https://github.com/Q1W1RTY/DS5Link/releases)
 
+Already installed? Use **Update** in the main window and confirm the Windows prompt.
+
 ### Good to know
 
 - Native DualSense features depend on game support. If Steam Input interferes, disable it for that game; close other controller emulators such as DSX.
@@ -97,12 +100,13 @@ The controller engine is based on **[vDS](https://github.com/hurryman2212/vds)**
 
 ### Что умеет
 
-- **Профили игр:** привязка настроек к EXE и применение при активном окне игры.
-- **Тачпад и стики:** назначения клавиш на нажатия и жесты, отдельные мёртвые зоны, предпросмотр ввода.
-- **Адаптивные курки:** отдельная настройка L2 и R2, сопротивление, спуск, пульсация и пресеты.
+- **Профили игр:** применение настроек по EXE активной игры, импорт и экспорт в JSON.
+- **Управление:** назначения клавиш на нажатия и жесты тачпада, переназначение кнопок, калибровка стиков, отдельные мёртвые зоны и предпросмотр ввода.
+- **Управление мышью:** перемещение курсора тачпадом или гироскопом при удержании L2. Чувствительность сохраняется в профиле.
+- **Адаптивные курки:** отдельная настройка L2 и R2, пресеты и трёхсекундный тест эффектов на свободных курках.
 - **Подсветка:** постоянный цвет, пульсация, радуга и индикация заряда.
-- **Звук → haptics:** отдача от выбранного выхода Windows с настройкой чувствительности, силы и порога тишины; PS5-режим по Bluetooth.
-- **На каждый день:** управление из трея, автозапуск, заряд батареи и экспорт диагностики в ZIP.
+- **Звук → haptics:** отдача от выбранного выхода Windows или только от звука активной игры из профиля. Доступно в PS5-режиме по Bluetooth, с настройкой чувствительности, силы и порога тишины.
+- **На каждый день:** управление из трея, автозапуск, заряд батареи, настройка интервалов автоотключения Bluetooth и экспорт диагностики в ZIP.
 
 Игра имеет приоритет над ручными эффектами для каналов, которыми она управляет. [Галерея интерфейса ↑](#screenshots)
 
@@ -116,6 +120,8 @@ The controller engine is based on **[vDS](https://github.com/hurryman2212/vds)**
 4. Откройте DS5Link и выберите **PS5** или **Xbox**. Эмуляция PS5 работает по Bluetooth; по USB используйте контроллер напрямую или выберите Xbox.
 
 [Подробная инструкция](docs/user/INSTALL.md) · [Все релизы](https://github.com/Q1W1RTY/DS5Link/releases)
+
+Если DS5Link уже установлен, нажмите **Обновить** в главном окне и подтвердите запрос Windows.
 
 ### Что учитывать
 
