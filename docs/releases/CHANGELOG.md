@@ -1,3 +1,9 @@
+## 0.1.66 — Appearance and app settings
+
+- Added dark, light, and gradient themes and adjustable window opacity.
+- Moved app preferences and diagnostics into a collapsed App settings section.
+- Both window backgrounds are fully opaque at 100%.
+
 ## 0.1.65 — DualSense lightbar and microphone
 
 - Show battery level until a game sets the DualSense lightbar color.

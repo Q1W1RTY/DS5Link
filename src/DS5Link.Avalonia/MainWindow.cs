@@ -29,17 +29,19 @@ internal sealed partial class MainWindow : Window {
     DiagnosticEvent[] eventRows = Array.Empty<DiagnosticEvent>();
     DispatcherTimer? footerResetTimer;
 
-    static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(48, 209, 88));
-    static readonly Brush BlueBrush = new SolidColorBrush(Color.FromRgb(10, 132, 255));
-    static readonly Brush AmberBrush = new SolidColorBrush(Color.FromRgb(255, 159, 10));
-    static readonly Brush RedBrush = new SolidColorBrush(Color.FromRgb(255, 69, 58));
-    static readonly Brush MutedBrush = new SolidColorBrush(Color.FromRgb(165, 165, 165));
+    static readonly Brush GreenBrush = AppearancePalette.Success;
+    static readonly Brush BlueBrush = AppearancePalette.Accent;
+    static readonly Brush EmulationBadgeBrush = AppearancePalette.Badge;
+    static readonly Brush AmberBrush = AppearancePalette.Warning;
+    static readonly Brush RedBrush = AppearancePalette.Danger;
+    static readonly Brush MutedBrush = AppearancePalette.Muted;
     static readonly Brush ActiveSegmentBg = new SolidColorBrush(Color.FromArgb(43, 255, 255, 255));
     static readonly Brush InactiveSegmentBg = Avalonia.Media.Brushes.Transparent;
 
     public MainWindow(bool preview) {
         this.preview = preview;
         InitializeComponent();
+        InitializeAppearance();
         InitializeConnectionSettings();
         UpdateButton.Content = L.T("Обновить");
         AutomationProperties.SetName(UpdateButton, L.T("Обновить DS5Link"));
@@ -102,7 +104,7 @@ internal sealed partial class MainWindow : Window {
         row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         row.Children.Add(new TextBlock { Text = name, Foreground = MutedBrush, FontSize = 11, VerticalAlignment = VerticalAlignment.Center });
-        var value = new TextBlock { Text = "—", Foreground = Avalonia.Media.Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+        var value = new TextBlock { Text = "—", Foreground = AppearancePalette.Text, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(value, 1);
         row.Children.Add(value);
         metrics[name] = value;
@@ -168,7 +170,7 @@ internal sealed partial class MainWindow : Window {
         MainEmuSwitch.IsChecked = emuActive;
         MainEmuSwitch.IsEnabled = (state.Enabled || state.State != "Stopping") && !commanding && !exitRequested && (state.Enabled || !state.UsbConnected || state.Mode=="xbox");
         if (emuActive) {
-            EmuBadge.Background = BlueBrush;
+            EmuBadge.Background = EmulationBadgeBrush;
             EmuTitle.Text = state.State switch {
                 "Active" => L.T("Эмуляция включена"),
                 "Wired" or "Conflict" => L.T("Эмуляция приостановлена"),
@@ -179,7 +181,7 @@ internal sealed partial class MainWindow : Window {
             ToggleButton.Content = L.T("Выключить эмуляцию");
             SetSegmentSelection(state.Mode == "xbox" ? 2 : 1);
         } else {
-            EmuBadge.Background = new SolidColorBrush(Color.FromArgb(35, 255, 255, 255));
+            EmuBadge.Background = AppearancePalette.InactiveBadge;
             EmuTitle.Text = L.T("Эмуляция выключена");
             ToggleButton.Content = L.T("Включить эмуляцию");
             SetSegmentSelection(0);
@@ -251,6 +253,7 @@ internal sealed partial class MainWindow : Window {
         if(DisclosureChevron.RenderTransform is RotateTransform rotation)rotation.Angle=open?180:0;
 
         if (open) {
+            SetAppSettingsOpen(true);
             lastDiagnostics = DateTime.MinValue;
             if (!preview) _ = Refresh();
         }
@@ -360,12 +363,12 @@ internal sealed partial class MainWindow : Window {
     void SetFooterMessage(string text) {
         footerResetTimer?.Stop();
         FooterStatus.Text = text;
-        FooterStatus.Foreground = new SolidColorBrush(Color.FromRgb(224, 224, 224));
+        FooterStatus.Foreground = AppearancePalette.Text;
         footerResetTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.4) };
         footerResetTimer.Tick += (_, _) => {
             footerResetTimer.Stop();
             FooterStatus.Text = "";
-            FooterStatus.Foreground = new SolidColorBrush(Color.FromRgb(156, 156, 156));
+            FooterStatus.Foreground = AppearancePalette.Muted;
         };
         footerResetTimer.Start();
     }

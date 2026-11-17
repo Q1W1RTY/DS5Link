@@ -1,4 +1,12 @@
 {
+  "Настройки приложения": "App settings",
+  "Внешний вид": "Appearance",
+  "Тема": "Theme",
+  "Тёмная": "Dark",
+  "Светлая": "Light",
+  "Градиент": "Gradient",
+  "Непрозрачность окна": "Window opacity",
+  "Не удалось сохранить внешний вид.": "Could not save appearance settings.",
   "Автоотключение": "Auto-disconnect",
   "Отключать DualSense от Bluetooth после 5 минут без ввода или 15 минут в игре": "Disconnect DualSense from Bluetooth after 5 minutes of inactivity, or 15 minutes in a game",
   "Не удалось сохранить настройку автоотключения": "Could not save the auto-disconnect setting",

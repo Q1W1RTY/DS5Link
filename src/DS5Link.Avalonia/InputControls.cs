@@ -19,6 +19,8 @@ internal sealed partial class MainWindow {
  }
  internal InputSettingsWindow CreateInputSettingsWindow(){
   var window=new InputSettingsWindow(inputProfile,ApplyInputSettings,preview,effectOptions,ApplyEffectSettings);
+  SetAppearanceTheme(window);
+  window.Opacity=Opacity;
   window.InitializeProfiles(()=>profiles,SaveProfile,DeleteProfile,activeProfile,profileLoadError,ReplaceProfiles);
   window.SetEffectState(current.Effects,audioEffects.Error,audioEffects.Level,audioEffects.SignalPeak,audioEffects.SourceName,current.Mode=="xbox");return window;
  }

@@ -8,7 +8,7 @@ public sealed class BatteryGauge:Control
  static BatteryGauge(){AffectsRender<BatteryGauge>(LevelProperty,ChargingProperty);}
  public override void Render(DrawingContext dc){
   base.Render(dc);
-  var outline=Brush.Parse("#66FFFFFF");
+  var outline=AppearancePalette.BatteryOutline;
   dc.DrawRectangle(null,new Pen(outline,1),new Rect(.5,.5,25,12),3,3);
   dc.DrawRectangle(outline,null,new Rect(27,4.5,1.5,4),.75,.75);
   if(Level is int level){var width=22*Math.Clamp(level,0,100)/100d;if(width>0)dc.DrawRectangle(Brush.Parse(level<=20?"#FF9F0A":"#30D158"),null,new Rect(2,2,width,9),1.5,1.5);}

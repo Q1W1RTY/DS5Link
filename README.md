@@ -27,6 +27,7 @@ DS5Link brings a virtual USB DualSense to Windows over Bluetooth. Use native ada
 - **Mouse control** — move the cursor with the touchpad or aim with the gyro while holding L2. Sensitivity is adjustable per profile.
 - **Adaptive triggers** — tune L2 and R2 separately or use a preset. Preview effects for three seconds when the game isn't controlling the trigger.
 - **Lighting** — solid colors, pulse, rainbow and battery-level indication.
+- **App appearance** — dark, light and gradient themes with adjustable window opacity under **App settings**.
 - **Audio → haptics** — use a Windows audio output or capture only the active profiled game's audio. Adjust sensitivity, strength and noise gate.
 - **Everyday essentials** — tray controls, optional startup with Windows, battery status, configurable Bluetooth idle timers and diagnostic ZIP export.
 
@@ -105,6 +106,7 @@ The controller engine is based on **[vDS](https://github.com/hurryman2212/vds)**
 - **Управление мышью:** перемещение курсора тачпадом или гироскопом при удержании L2. Чувствительность сохраняется в профиле.
 - **Адаптивные курки:** отдельная настройка L2 и R2, пресеты и трёхсекундный тест эффектов на свободных курках.
 - **Подсветка:** постоянный цвет, пульсация, радуга и индикация заряда.
+- **Внешний вид:** тёмная, светлая и градиентная темы и непрозрачность окна в разделе **«Настройки приложения»**.
 - **Звук → haptics:** отдача от выбранного выхода Windows или только от звука активной игры из профиля. Доступно в PS5-режиме по Bluetooth, с настройкой чувствительности, силы и порога тишины.
 - **На каждый день:** управление из трея, автозапуск, заряд батареи, настройка интервалов автоотключения Bluetooth и экспорт диагностики в ZIP.
 

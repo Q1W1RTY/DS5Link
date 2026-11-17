@@ -9,7 +9,7 @@ internal sealed class EffectSlider:StackPanel {
  internal readonly Slider Slider;
  internal int Value {get=>(int)Slider.Value;set=>Slider.Value=value;}
  internal EffectSlider(Window window,string caption,int min,int max,string unit="",Func<int,string>? format=null){
-  Margin=new Thickness(0,0,0,5);var row=new Grid();var label=new TextBlock {Text=caption,FontSize=12,Foreground=new SolidColorBrush(Color.FromRgb(196,196,196))};var value=new TextBlock {HorizontalAlignment=HorizontalAlignment.Right,FontSize=12};row.Children.Add(label);row.Children.Add(value);Children.Add(row);
+  Margin=new Thickness(0,0,0,5);var row=new Grid();var label=new TextBlock {Text=caption,FontSize=12,Foreground=AppearancePalette.Muted};var value=new TextBlock {HorizontalAlignment=HorizontalAlignment.Right,FontSize=12};row.Children.Add(label);row.Children.Add(value);Children.Add(row);
   Slider=new Slider {Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Theme=window.RequireTheme("InputSlider"),Margin=new Thickness(0,3,0,0)};Slider.ValueChanged+=(_,_)=>value.Text=format?.Invoke((int)Slider.Value)??$"{Slider.Value:F0}{unit}";Children.Add(Slider);Value=min;
  }
 }

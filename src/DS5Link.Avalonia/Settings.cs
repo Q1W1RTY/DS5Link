@@ -9,6 +9,14 @@ internal sealed class Settings {
  public string Language {get;set;}="ru";
  public bool FirstRun {get;set;}=true;
  public string? LastNotifiedUpdate {get;set;}
+ public string Theme {get;set;}="dark";
+ public int WindowOpacity {get;set;}=94;
+ internal AppearanceTheme PreferredTheme=>Theme switch {
+  "light"=>AppearanceTheme.Light,
+  "gradient"=>AppearanceTheme.Gradient,
+  _=>AppearanceTheme.Dark
+ };
+ internal int NormalizedOpacity=>Math.Clamp(WindowOpacity,75,100);
  public static readonly string DirectoryPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DS5Link");
  public static Settings Load() {
   try {var settings=JsonSerializer.Deserialize<Settings>(File.ReadAllText(Path.Combine(DirectoryPath,"settings.json")));return settings?.SchemaVersion==1?settings:new();}

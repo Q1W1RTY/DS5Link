@@ -35,6 +35,19 @@ internal static class MigrationQa
    report.Add("14 controller state/mode combinations");
    main.Display(new BridgeState{State="Active",Enabled=true,BatteryPercent=85,Charging=true});
    await Task.Delay(100);
+   var appSettingsButton=main.FindControl<Button>("AppSettingsButton")!;
+   var appSettingsPanel=main.FindControl<StackPanel>("AppSettingsPanel")!;
+   if(appSettingsPanel.IsVisible)throw new Exception("App settings should start collapsed");
+   if(((SolidColorBrush)Application.Current!.Resources["ShellFrameBrush"]!).Color!=Color.Parse("#18181B"))
+    throw new Exception("Dark window backdrop must have the original RGB without built-in transparency");
+   Capture(main,Path.Combine(folder,"main-active.png"));
+   main.SetDiagnosticsOpen(true);
+   if(!appSettingsPanel.IsVisible)throw new Exception("Direct diagnostics did not reveal the settings group");
+   main.SetDiagnosticsOpen(false);
+   appSettingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   if(appSettingsPanel.IsVisible)throw new Exception("App settings did not collapse");
+   appSettingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   report.Add("Original dark colors and collapsed app settings with direct diagnostics access");
    main.Display(new BridgeState{State="Paused",ReasonCode="emulation_paused",AutoDisconnectEnabled=true,IdlePolicy=new(1,5,15,false)});
    main.FindControl<Button>("IdlePolicyExpander")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
    await Task.Delay(50);
@@ -45,7 +58,9 @@ internal static class MigrationQa
    Capture(main,Path.Combine(folder,"main.png"));
    main.FindControl<Button>("IdlePolicyExpander")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
    report.Add("Idle settings disclosure and automatic save controls");
-   var window=main.CreateInputSettingsWindow();window.Show(main);await Task.Delay(100);
+   main.FindControl<Button>("InputSettingsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   await Task.Delay(100);
+   var window=DesktopLifetime.Current.Windows.OfType<InputSettingsWindow>().Single();
    var tabs=window.FindControl<TabControl>("SettingsTabs")!;
    if(tabs.ItemCount!=6)throw new Exception("Missing settings tabs");
    for(int i=0;i<tabs.ItemCount;i++){
@@ -55,6 +70,34 @@ internal static class MigrationQa
     Capture(window,Path.Combine(folder,"settings-"+i+".png"));
    }
    report.Add("All six real settings pages initialized and rendered");
+   main.FindControl<Button>("AppearanceButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   if(!main.FindControl<StackPanel>("AppearancePanel")!.IsVisible)throw new Exception("Appearance panel did not open");
+   var theme=main.FindControl<ComboBox>("AppearanceThemePicker")!;
+   var opacity=main.FindControl<Slider>("AppearanceOpacity")!;
+   if(theme.SelectedIndex!=0 || opacity.Value!=94)throw new Exception("Default appearance changed");
+   tabs.SelectedIndex=4;
+   foreach(var (name,index) in new[]{("dark",0),("light",1),("gradient",2)}){
+    theme.SelectedIndex=index;await Task.Delay(100);
+    var expected=index==1?ThemeVariant.Light:ThemeVariant.Dark;
+    if(main.ActualThemeVariant!=expected || window.ActualThemeVariant!=expected)throw new Exception("Theme did not reach both windows");
+    Capture(main,Path.Combine(folder,"appearance-"+name+".png"));
+    Capture(window,Path.Combine(folder,"lighting-"+name+".png"));
+   }
+   opacity.Value=82;
+   if(Math.Abs(main.Opacity-.82)>.001 || Math.Abs(window.Opacity-.82)>.001)throw new Exception("Opacity did not reach both windows");
+   await Task.Delay(100);
+   Capture(main,Path.Combine(folder,"appearance-transparent.png"));
+   opacity.Value=100;theme.SelectedIndex=0;
+   await Task.Delay(100);
+   Capture(main,Path.Combine(folder,"appearance-opaque.png"));
+   Capture(window,Path.Combine(folder,"lighting-opaque.png"));
+   var legacy=JsonSerializer.Deserialize<Settings>("{\"SchemaVersion\":1,\"Language\":\"en\"}")!;
+   var saved=JsonSerializer.Deserialize<Settings>(JsonSerializer.Serialize(new Settings{Theme="gradient",WindowOpacity=89}))!;
+   if(legacy.PreferredTheme!=AppearanceTheme.Dark || legacy.NormalizedOpacity!=94 ||
+      saved.PreferredTheme!=AppearanceTheme.Gradient || saved.NormalizedOpacity!=89 ||
+      new Settings{Theme="unknown",WindowOpacity=3}.NormalizedOpacity!=75)
+    throw new Exception("Appearance preferences are not backward-compatible");
+   report.Add("Appearance: three themes, live opacity in both windows, default and saved settings");
    var audioDevice=window.FindControl<ComboBox>("AudioDevice")!;
    var defaultAudio=new AudioOutputDevice("","Default");
    var explicitAudio=new AudioOutputDevice("test-audio-device","Test device");
