@@ -215,6 +215,7 @@
   "Устройство вывода Windows": "Windows default output",
   "Файл профилей повреждён или имеет неподдерживаемый формат. Исходный файл сохранён.": "The profiles file is damaged or unsupported. The original file has been preserved.",
   "Цвет игры всегда имеет приоритет.": "Game lighting always takes priority.",
+  "В режиме «Управляет игра» подсветка показывает заряд, пока игра не задаст цвет.": "In Game mode, the lightbar shows battery level until the game sets a color.",
   "Цвет игры всегда имеет приоритет. Для режима заряда: зелёный / оранжевый / красный.": "Game lighting takes priority. Battery colors: green / amber / red.",
   "Частота": "Frequency",
   "Чувствительность": "Sensitivity",

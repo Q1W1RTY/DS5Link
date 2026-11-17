@@ -103,13 +103,16 @@ internal sealed partial class InputSettingsWindow {
   if(choice.Key=="pulse")scale*=0.12+0.88*(0.5-0.5*Math.Cos(cycle*Math.PI*2));
   if(choice.Key=="rainbow"){double hue=(cycle%1)*6;int sector=(int)hue;double up=(hue-sector)*255,down=255-up;(r,g,b)=sector switch{0=>(255d,up,0d),1=>(down,255d,0d),2=>(0d,255d,up),3=>(0d,down,255d),4=>(up,0d,255d),_=>(255d,0d,down)};}
   if(choice.Key=="battery")(r,g,b)=effectState.BatteryPercent is not int battery?(80,80,80):battery<=20?(255,45,35):battery<=50?(255,160,10):(48,209,88);
-  if(choice.Key=="game"){(r,g,b)=(90,90,95);scale=1;}
+  if(choice.Key=="game"){
+   if(effectState.Active && effectState.LedRgb.Length==3){(r,g,b)=(effectState.LedRgb[0],effectState.LedRgb[1],effectState.LedRgb[2]);scale=1;}
+   else (r,g,b)=(80,80,80);
+  }
   LedPreview.Background=new SolidColorBrush(Color.FromRgb((byte)Math.Clamp(r*scale,0,255),(byte)Math.Clamp(g*scale,0,255),(byte)Math.Clamp(b*scale,0,255)));
  }
  internal void SetEffectState(EffectState state,string audioError,int level,double inputPeak=0,string source="",bool xboxMode=false){
   TriggerTestButton.IsEnabled=!preview && !testingTriggers && state.Active;
   effectState=state;TriggerOwnership.Text=$"L2: {(state.LeftOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))} · R2: {(state.RightOwned?L.T("управляет игра"):L.T("ручные эффекты доступны"))}";
-  LedOwnership.Text=state.LedOwned?L.T("Подсветкой управляет игра до переподключения эмуляции."):L.T("Цвет игры всегда имеет приоритет. Для режима заряда: зелёный / оранжевый / красный.");
+  LedOwnership.Text=state.LedOwned?L.T("Подсветкой управляет игра до переподключения эмуляции."):L.T("В режиме «Управляет игра» подсветка показывает заряд, пока игра не задаст цвет.");
   AudioEffectsCard.IsEnabled=!xboxMode;
   AudioMeter.Value=xboxMode?0:Math.Clamp(inputPeak*100,0,100);
   AudioStatus.Text=xboxMode?L.T("Недоступно в Xbox-режиме. Переключитесь на PS5."):state.RumbleOwned?L.T("Игра использует вибрацию / HD-haptics. Звук не подмешивается."):!string.IsNullOrEmpty(audioError)?L.T("Захват звука недоступен: ")+audioError:!state.Options.AudioEnabled?L.T("Захват звука выключен"):!state.Active?L.T("Захват приостановлен: включите эмуляцию и подключите контроллер."):inputPeak>0?L.F("Вход {0:F1}% · haptics {1}%",inputPeak*100,level):L.F("Ожидание звука · {0}",source);

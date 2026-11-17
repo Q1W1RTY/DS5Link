@@ -27,6 +27,7 @@ internal sealed record EffectOptions {
 internal sealed record EffectState {
  public bool Active {get;init;}
  public int? BatteryPercent {get;init;}
+ public int[] LedRgb {get;init;}=[];
  public EffectOptions Options {get;init;}=new();
  public bool LeftOwned {get;init;}public bool RightOwned {get;init;}public bool LedOwned {get;init;}public bool RumbleOwned {get;init;}public bool LeaseActive {get;init;}
 }

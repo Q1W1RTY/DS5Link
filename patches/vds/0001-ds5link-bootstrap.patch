@@ -863,7 +863,7 @@ index a951df6..91241d5 100644
  using vds::win::win32_error_message;
  
 diff --git a/src/platform/win32/vdsd.cc b/src/platform/win32/vdsd.cc
-index 34839ba..2cec183 100644
+index 34839ba..52c7e80 100644
 --- a/src/platform/win32/vdsd.cc
 +++ b/src/platform/win32/vdsd.cc
 @@ -1,3 +1,4 @@
@@ -1124,16 +1124,17 @@ index 34839ba..2cec183 100644
    bool have_sent_audio_chunk = false;
    bool audio_route_deactivated = false;
  
-@@ -1563,7 +1643,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+@@ -1563,7 +1643,8 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
          chunk.has_haptics_signal = false;
          has_signal = chunk.has_signal;
          packet = state.haptics_builder.build_packet(
 -            chunk.haptics, chunk.speaker, state.output_state.state(), true,
-+            chunk.haptics, chunk.speaker, render_effect_state(state), true,
++            chunk.haptics, chunk.speaker, render_effect_state(state),
++            state.audio_in_stream_active,
              state.waveout_active ? !state.waveout_speaker_selected
                                   : state.headset_plugged);
          sending_concealment = true;
-@@ -1622,12 +1702,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+@@ -1622,12 +1703,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
            state.next_haptics_send_time = {};
            state.last_audio_chunk.reset();
  
@@ -1147,7 +1148,7 @@ index 34839ba..2cec183 100644
            audio_route_deactivated = true;
          }
          state.next_haptics_send_time = {};
-@@ -1661,7 +1736,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+@@ -1661,7 +1737,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
          ++state.audio_stale_dropped_count;
          ++stale_dropped_now;
        }
@@ -1156,16 +1157,19 @@ index 34839ba..2cec183 100644
        has_signal = chunk.has_signal;
        has_haptics_signal = chunk.has_haptics_signal;
        vds::HapticsChunk haptics = chunk.haptics;
-@@ -1675,7 +1750,7 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+@@ -1675,8 +1751,9 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
                                       ? !state.waveout_speaker_selected
                                       : state.headset_plugged;
        packet = state.haptics_builder.build_packet(haptics, chunk.speaker,
 -                                                  state.output_state.state(),
+-                                                  true, route_headset);
 +                                                  render_effect_state(state),
-                                                   true, route_headset);
++                                                  state.audio_in_stream_active,
++                                                  route_headset);
        sent_audio_chunk = chunk;
        have_sent_audio_chunk = true;
-@@ -1688,27 +1763,26 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+       scheduled_send_time = state.next_haptics_send_time == Clock::time_point{}
+@@ -1688,27 +1765,26 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
    }
  
    if (audio_route_deactivated) {
@@ -1202,7 +1206,7 @@ index 34839ba..2cec183 100644
        if (sending_keepalive) {
          ++state.audio_keepalive_blocked_count;
        } else {
-@@ -1746,10 +1820,6 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
+@@ -1746,10 +1822,6 @@ Clock::duration flush_pending_audio_chunk(BluetoothTransport &bluetooth,
  
    {
      std::lock_guard guard(state.mutex);
@@ -1213,7 +1217,7 @@ index 34839ba..2cec183 100644
      pending_after_pop = state.pending_audio_chunks.size();
      if (pending_after_pop == 0) {
        state.audio_jitter_buffer_start = {};
-@@ -2034,6 +2104,116 @@ void bluetooth_to_virtual_loop(BluetoothTransport &bluetooth,
+@@ -2034,6 +2106,116 @@ void bluetooth_to_virtual_loop(BluetoothTransport &bluetooth,
    }
  }
  
@@ -1330,7 +1334,7 @@ index 34839ba..2cec183 100644
  void run_bridge_session(const std::string &device_address,
                          const std::string &virtual_device,
                          const vds::ControllerConfig *selected_config,
-@@ -2064,6 +2244,7 @@ void run_bridge_session(const std::string &device_address,
+@@ -2064,6 +2246,7 @@ void run_bridge_session(const std::string &device_address,
        vds::win::usbip::open_virtual_port(profile, selected_config->ports[0],
                                           logger);
    BridgeState state;
@@ -1338,7 +1342,7 @@ index 34839ba..2cec183 100644
    std::mutex bluetooth_mutex;
    UniqueHandle virtual_device_handle = open_device(virtual_port->pipe_path());
    std::atomic_bool bridge_restart_requested = false;
-@@ -2076,6 +2257,21 @@ void run_bridge_session(const std::string &device_address,
+@@ -2076,6 +2259,21 @@ void run_bridge_session(const std::string &device_address,
          std::this_thread::sleep_for(std::chrono::milliseconds(100));
        }
        if (g_stop_requested.load() || session_stop_requested->load()) {
@@ -1360,7 +1364,7 @@ index 34839ba..2cec183 100644
          request_bridge_restart(virtual_device_handle.get(), bluetooth.get(),
                                 bridge_restart_requested);
        }
-@@ -2103,6 +2299,30 @@ void run_bridge_session(const std::string &device_address,
+@@ -2103,6 +2301,30 @@ void run_bridge_session(const std::string &device_address,
               "Windows bridge started virtual=" + virtual_device +
                   " bluetooth=" + bluetooth->description());
  
@@ -1391,7 +1395,7 @@ index 34839ba..2cec183 100644
    std::thread to_bluetooth([&] {
      try {
        virtual_to_bluetooth_loop(virtual_device_handle.get(), *bluetooth, state,
-@@ -2153,6 +2373,8 @@ void run_bridge_session(const std::string &device_address,
+@@ -2153,6 +2375,8 @@ void run_bridge_session(const std::string &device_address,
    to_virtual.join();
    audio_flush.join();
    bridge_restart_requested = true;
@@ -1400,7 +1404,7 @@ index 34839ba..2cec183 100644
    if (stop_monitor.joinable()) {
      stop_monitor.join();
    }
-@@ -2168,297 +2390,10 @@ struct BridgeWorker {
+@@ -2168,297 +2392,10 @@ struct BridgeWorker {
    std::thread thread;
    std::atomic_bool stop_requested = false;
    std::atomic_bool done = false;
@@ -1700,7 +1704,7 @@ index 34839ba..2cec183 100644
  
  bool worker_is_connected(const BridgeWorker &worker) {
    return !worker.done.load() && !worker.stop_requested.load();
-@@ -2518,14 +2453,17 @@ void run_configured_bridge_worker(vds::ControllerConfig config,
+@@ -2518,14 +2455,17 @@ void run_configured_bridge_worker(vds::ControllerConfig config,
                                    std::atomic_bool &stop_requested,
                                    std::atomic_bool &done,
                                    std::string &last_error,
@@ -1720,7 +1724,7 @@ index 34839ba..2cec183 100644
                         &stop_requested, &trace_flags);
      if (!g_stop_requested && !stop_requested.load()) {
        last_error = "bridge session ended";
-@@ -2550,7 +2488,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2550,7 +2490,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    std::vector<std::string> discovery_warned_states;
    std::vector<std::string> no_port_warned_addresses;
    std::vector<std::string> port_binding_warned_states;
@@ -1730,7 +1734,7 @@ index 34839ba..2cec183 100644
    UniqueHandle retry_timer(CreateWaitableTimerExA(
        nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
        TIMER_MODIFY_STATE | SYNCHRONIZE));
-@@ -2565,8 +2504,52 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2565,8 +2506,52 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    std::atomic_uint32_t trace_flags = 0;
    bool reload_requested = false;
    bool scan_requested = true;
@@ -1783,7 +1787,7 @@ index 34839ba..2cec183 100644
    logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
               "Windows bridge supervisor started pipe=" + options.pipe);
  
-@@ -2596,6 +2579,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2596,6 +2581,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
    };
  
    while (!g_stop_requested) {
@@ -1791,7 +1795,7 @@ index 34839ba..2cec183 100644
      bool worker_removed = false;
      for (auto worker = workers.begin(); worker != workers.end();) {
        if ((*worker)->done.load()) {
-@@ -2603,6 +2587,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2603,6 +2589,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            (*worker)->thread.join();
          }
          if (!(*worker)->last_error.empty()) {
@@ -1799,7 +1803,7 @@ index 34839ba..2cec183 100644
            vds::record_vdsd_worker_failure(
                worker_failure_backoffs, (*worker)->address,
                Clock::now() + kBridgeWorkerFailureRetryDelay);
-@@ -2610,13 +2595,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2610,13 +2597,41 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          worker = workers.erase(worker);
          worker_removed = true;
        } else {
@@ -1841,7 +1845,7 @@ index 34839ba..2cec183 100644
      if (reload_requested) {
        scan_requested = true;
      }
-@@ -2628,24 +2641,68 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2628,24 +2643,68 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        scan_requested = true;
      }
  
@@ -1913,7 +1917,7 @@ index 34839ba..2cec183 100644
                detail = kWindowsVirtualPortProviderUnavailable;
              } else {
                detail = kWindowsHidHideProviderUnavailable;
-@@ -2664,13 +2721,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2664,13 +2723,14 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          const std::vector<HidBluetoothDevice> hid_devices =
@@ -1931,7 +1935,7 @@ index 34839ba..2cec183 100644
              logger.log(
                  vds::LogScope::Daemon, vds::LogLevel::Info,
                  "Windows bridge worker retiring address=" + worker->address +
-@@ -2688,6 +2746,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2688,6 +2748,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
          }
  
          for (const auto &config : db.controllers) {
@@ -1939,7 +1943,7 @@ index 34839ba..2cec183 100644
            if (!vds::consume_vdsd_worker_retry(worker_failure_backoffs,
                                                config.address, Clock::now())) {
              continue;
-@@ -2727,7 +2786,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2727,7 +2788,8 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            vds::forget_vdsd_warning_state(port_binding_warned_states,
                                           config.address);
            std::string discovery_error;
@@ -1949,7 +1953,7 @@ index 34839ba..2cec183 100644
                config.address, hid_devices, &discovery_error);
            if (!connected_device) {
              if (vds::remember_vdsd_warning_state(
-@@ -2743,7 +2803,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2743,7 +2805,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            const vds::VdsdWorkerLaunchDecision launch =
                vds::select_vdsd_worker_launch_decision(
                    config, available_virtual_ports(), reserved_ports,
@@ -1958,7 +1962,7 @@ index 34839ba..2cec183 100644
                    reserved_device_addresses);
            if (launch.status ==
                vds::VdsdWorkerLaunchStatus::VirtualPortProviderUnavailable) {
-@@ -2785,11 +2845,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2785,11 +2847,11 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
            BridgeWorker *worker_ptr = worker.get();
            worker->thread = std::thread([worker_config = launch.config,
                                          device_address = launch.device_address,
@@ -1972,7 +1976,7 @@ index 34839ba..2cec183 100644
              SetEvent(worker_ptr->done_event.get());
            });
            logger.log(
-@@ -2814,7 +2874,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2814,7 +2876,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
      }
  
      const auto now = Clock::now();
@@ -1981,7 +1985,7 @@ index 34839ba..2cec183 100644
      if (!worker_failure_backoffs.empty()) {
        const auto next_retry = std::min_element(
            worker_failure_backoffs.begin(), worker_failure_backoffs.end(),
-@@ -2824,7 +2884,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2824,7 +2886,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        if (next_retry != worker_failure_backoffs.end()) {
          if (next_retry->retry_after <= now) {
            scan_requested = true;
@@ -1990,7 +1994,7 @@ index 34839ba..2cec183 100644
          }
          retry_after =
              retry_after
-@@ -2879,6 +2939,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2879,6 +2941,7 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        wait_handles.push_back(target.handle);
      }
  
@@ -1998,7 +2002,7 @@ index 34839ba..2cec183 100644
      const DWORD wait_result =
          WaitForMultipleObjects(static_cast<DWORD>(wait_handles.size()),
                                 wait_handles.data(), FALSE, INFINITE);
-@@ -2898,7 +2959,179 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
+@@ -2898,7 +2961,179 @@ void run_bridge_supervisor(const Options &options, vds::Logger &logger) {
        g_stop_requested = true;
        break;
      case WaitKind::Control:
@@ -2178,7 +2182,7 @@ index 34839ba..2cec183 100644
          std::uint32_t current_trace_flags = trace_flags.load();
          const std::string reply = handle_supervisor_control_command(
              command, workers, options.db_path, current_trace_flags,
-@@ -2935,6 +3168,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2935,6 +3170,7 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
    try {
      g_stop_requested = false;
      const Options options = parse_platform_args(argc, argv);
@@ -2186,7 +2190,7 @@ index 34839ba..2cec183 100644
      UniqueHandle stop_event(CreateEventA(nullptr, TRUE, FALSE, nullptr));
      if (!stop_event) {
        throw std::runtime_error("failed to create stop event: " +
-@@ -2946,26 +3180,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
+@@ -2946,26 +3182,29 @@ int run_windows_daemon(int argc, char **argv, bool service_mode) {
      }
  
      vds::Logger logger(options.log_path);
@@ -2230,7 +2234,7 @@ index 34839ba..2cec183 100644
        if (service_mode) {
          update_service_status(SERVICE_RUNNING);
          logger.log(vds::LogScope::Daemon, vds::LogLevel::Info,
-@@ -3011,7 +3248,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
+@@ -3011,7 +3250,7 @@ void WINAPI service_main(DWORD argc, LPSTR *argv) {
  
    update_service_status(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
    g_service_exit_code = static_cast<DWORD>(
@@ -2239,7 +2243,7 @@ index 34839ba..2cec183 100644
    update_service_status(SERVICE_STOPPED, g_service_exit_code == 0
                                               ? ERROR_SUCCESS
                                               : ERROR_SERVICE_SPECIFIC_ERROR);
-@@ -3035,6 +3272,7 @@ bool dispatch_service_if_needed() {
+@@ -3035,6 +3274,7 @@ bool dispatch_service_if_needed() {
  }
  
  int main(int argc, char **argv) {
@@ -2480,10 +2484,10 @@ index 0000000..3c36be3
 + std::cout<<"Audio reservation survives reset during transport I/O\n";}
 diff --git a/tests/audio_tests.cc b/tests/audio_tests.cc
 new file mode 100644
-index 0000000..b677c3a
+index 0000000..d8b23f5
 --- /dev/null
 +++ b/tests/audio_tests.cc
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,51 @@
 +// SPDX-License-Identifier: MIT
 +#include "vds_protocol.hh"
 +#include <algorithm>
@@ -2509,6 +2513,12 @@ index 0000000..b677c3a
 +  try {
 +    const auto silence=extract(pcm(0,0));
 +    check(!silence.has_signal && !silence.has_haptics_signal,"silence marked active");
++    vds::HapticsPacketBuilder packets;
++    const vds::DsState state{};
++    const auto playback = packets.build_packet(silence.haptics, silence.speaker, state, false, false);
++    const auto duplex = packets.build_packet(silence.haptics, silence.speaker, state, true, false);
++    check(playback[4] == 0xfe && duplex[4] == 0xff,
++          "Bluetooth playback must only enable the microphone during capture");
 +    for(unsigned channel=0;channel<4;++channel) {
 +      const auto bytes=pcm(channel,10000);
 +      const auto chunk=extract(bytes);
@@ -3199,10 +3209,10 @@ index 0000000..7212192
 +}
 diff --git a/src/ds5link_effects.hh b/src/ds5link_effects.hh
 new file mode 100644
-index 0000000..ae4fe7f
+index 0000000..dcbbdca
 --- /dev/null
 +++ b/src/ds5link_effects.hh
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,122 @@
 +#pragma once
 +#include "vds_protocol.hh"
 +#include <nlohmann/json.hpp>
@@ -3263,13 +3273,25 @@ index 0000000..ae4fe7f
 +}
 +struct Session {
 + bool left_owned=false,right_owned=false,led_owned=false,rumble_owned=false,native_audio=false;
-+ bool left_used=false,right_used=false,led_used=false,audio_used=false;
++ bool left_used=false,right_used=false,audio_used=false;
++ bool saw_rgb_report=false;
 + bool led_ready=false;std::int64_t led_init_ms=0;
 + void observe(std::span<const std::uint8_t> report){
 +  if(report.size()>=48 && report[0]==2)report=report.subspan(1,47);
 +  else if(report.size()!=47)return;
 +  right_owned|=(report[0]&4)!=0;left_owned|=(report[0]&8)!=0;
-+  led_owned|=(report[1]&12)!=0 || (report[38]&3)!=0;
++  constexpr auto rgb = offsetof(vds_set_state_data, led_red);
++  if ((report[1] & 4) != 0) {
++   // At attachment the host can set a player color and fade in the player
++   // indicators even on the desktop. Both values vary by assigned slot.
++   const auto indicators = report[rgb - 1];
++   const bool attachment_led = !saw_rgb_report && report[1] == 0x14 &&
++       (indicators & 0xe0) == 0x20 && (indicators & 0x1f) != 0 && report[0] == 0 &&
++       std::all_of(report.begin() + 2, report.begin() + rgb - 1,
++                   [](auto value) { return value == 0; });
++   saw_rgb_report = true;
++   led_owned |= !attachment_led;
++  }
 +  rumble_owned|=(report[0]&3)!=0 || (report[38]&4)!=0;
 + }
 +};
@@ -3281,7 +3303,7 @@ index 0000000..ae4fe7f
 +  const double hue=std::fmod(cycle,1.0)*6;int sector=static_cast<int>(hue);int up=static_cast<int>((hue-sector)*255),down=255-up;
 +  switch(sector){case 0:c={255,up,0};break;case 1:c={down,255,0};break;case 2:c={0,255,up};break;case 3:c={0,down,255};break;case 4:c={up,0,255};break;default:c={255,0,down};}
 + }
-+ if(o.led_mode=="battery")c=!battery?std::array<int,3>{80,80,80}:*battery<=20?std::array<int,3>{255,45,35}:*battery<=50?std::array<int,3>{255,160,10}:std::array<int,3>{48,209,88};
++ if(o.led_mode=="battery" || o.led_mode=="game")c=!battery?std::array<int,3>{80,80,80}:*battery<=20?std::array<int,3>{255,45,35}:*battery<=50?std::array<int,3>{255,160,10}:std::array<int,3>{48,209,88};
 + for(auto& v:c)v=static_cast<int>(std::lround(v*scale));return c;
 +}
 +inline vds::DsState compose(const vds::DsState& base,Session& session,const Options& options,bool live,int audio_level,double seconds,std::optional<int> battery={}){
@@ -3293,13 +3315,16 @@ index 0000000..ae4fe7f
 + };
 + trigger(options.right,session.right_owned,session.right_used,offsetof(vds_set_state_data,right_trigger_ffb),4);
 + trigger(options.left,session.left_owned,session.left_used,offsetof(vds_set_state_data,left_trigger_ffb),8);
-+ if(!session.led_owned){
-+  if(live && options.led_mode!="game"){
-+   session.led_used=true;
-+   if(session.led_init_ms!=0 && seconds*1000>=session.led_init_ms)session.led_ready=true;
-+   out[1]&=static_cast<std::uint8_t>(~12);out[38]&=static_cast<std::uint8_t>(~3);
-+   if(session.led_ready){const auto rgb=color(options,seconds,battery);for(int i=0;i<3;i++)out[offsetof(vds_set_state_data,led_red)+i]=static_cast<std::uint8_t>(rgb[i]);out[1]|=4;}
-+  }else if(session.led_used){out[1]|=4;out[38]&=static_cast<std::uint8_t>(~3);}
++ if(!session.led_owned && (session.led_ready || session.led_init_ms!=0)){
++  if(session.led_init_ms!=0 && seconds*1000>=session.led_init_ms)session.led_ready=true;
++  out[1]&=static_cast<std::uint8_t>(~12);out[38]&=static_cast<std::uint8_t>(~3);
++  if(session.led_ready){
++   Options fallback;
++   fallback.brightness=options.brightness;
++   const auto rgb=color(live ? options : fallback,seconds,battery);
++   for(int i=0;i<3;i++)out[offsetof(vds_set_state_data,led_red)+i]=static_cast<std::uint8_t>(rgb[i]);
++   out[1]|=4;
++  }
 + }
 + if(!session.rumble_owned && !session.native_audio && (live && options.audio_enabled || session.audio_used)){
 +  // Audio is PCM haptics now; never convert loudness into a sustained rumble.
@@ -3825,7 +3850,7 @@ index 0000000..62644d2
 +
 diff --git a/src/platform/win32/ds5link_effects_runtime.hh b/src/platform/win32/ds5link_effects_runtime.hh
 new file mode 100644
-index 0000000..7c28fd2
+index 0000000..fc8c67b
 --- /dev/null
 +++ b/src/platform/win32/ds5link_effects_runtime.hh
 @@ -0,0 +1,76 @@
@@ -3894,7 +3919,7 @@ index 0000000..7c28fd2
 + for(int i=0;i<3;i++)led_rgb[i]=rendered[offsetof(vds_set_state_data,led_red)+i];
 + return rendered;
 +}
-+inline bool needs_led_init(const Session& session){std::lock_guard guard(mutex);return lease(Clock::now()) && options.led_mode!="game" && !session.led_owned && !session.led_ready && session.led_init_ms==0;}
++inline bool needs_led_init(const Session& session){return !session.led_owned && !session.led_ready && session.led_init_ms==0;}
 +inline std::optional<vds::HapticsChunk> take_wave(const Session& session,bool& was_active){
 + std::lock_guard guard(mutex);auto now=Clock::now();bool owned=session.rumble_owned || session.native_audio;
 + bool allowed=lease(now) && options.audio_enabled && !owned;
@@ -4321,17 +4346,17 @@ index 0000000..485805c
 +}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
 diff --git a/tests/effects_tests.cc b/tests/effects_tests.cc
 new file mode 100644
-index 0000000..5b5d554
+index 0000000..0072773
 --- /dev/null
 +++ b/tests/effects_tests.cc
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,120 @@
 +#include "ds5link_effects.hh"
 +#include "platform/win32/ds5link_effects_runtime.hh"
 +#include <iostream>
 +#include <thread>
 +using namespace ds5link::effects;
 +void check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
-+int main(){
++int main() try {
 + vds::HapticsPacketBuilder packets;vds::HapticsChunk signed_pcm{};for(int i=0;i<64;i++)signed_pcm[i]=static_cast<std::int8_t>(i-32);
 + auto pcm=packets.build_wave_packet(signed_pcm);check(pcm.size()==142 && pcm[0]==0x32 && pcm[2]==0x91 && pcm[3]==7 && pcm[4]==0xfe && pcm[9]==0xff && pcm[11]==0x92 && pcm[12]==64,"haptics-only framing incorrect");
 + for(int i=0;i<64;i++)check(static_cast<std::int8_t>(pcm[13+i])==signed_pcm[i],"signed PCM lane corrupted");
@@ -4343,6 +4368,23 @@ index 0000000..5b5d554
 + vds::DsOutputState led_game;auto initial=led_game.build_bt_init_report();
 + check((initial[4+38]&2)!=0 && !(led_game.state()[38]&2),"startup fade persisted into normal PS5 state");
 + std::array<std::uint8_t,48> host_led{};host_led[0]=2;host_led[2]=4;host_led[1+offsetof(vds_set_state_data,led_blue)]=128;
++ constexpr auto red_offset=offsetof(vds_set_state_data,led_red);
++ std::array<std::uint8_t,48> attachment{};
++ attachment[0]=2;attachment[2]=0x14;attachment[red_offset]=0x24;attachment[red_offset+3]=0x40;
++ Session desktop;desktop.led_ready=true;
++ led_game.apply_usb_output_report(attachment);desktop.observe(attachment);
++ const auto charged=compose(led_game.state(),desktop,Options{},false,0,1,80);
++ const auto low=compose(led_game.state(),desktop,Options{},false,0,1,10);
++ check(!desktop.led_owned && (charged[1]&4) && charged[red_offset+1]>charged[red_offset] && low[red_offset]>low[red_offset+1],"attachment RGB blocked the desktop battery indicator");
++ auto red_attachment=attachment;
++ red_attachment[red_offset]=0x2a;red_attachment[red_offset+1]=0x40;red_attachment[red_offset+3]=0;
++ Session second_player;
++ second_player.observe(red_attachment);
++ check(!second_player.led_owned,"second player's attachment color reserved the lightbar");
++ second_player.observe(red_attachment);
++ check(second_player.led_owned,"an RGB command after attachment could not claim the lightbar");
++ auto custom=Options{};custom.led_mode="fixed";custom.red=255;custom.green=0;custom.blue=0;
++ check(compose(led_game.state(),desktop,custom,true,0,1,80)[red_offset+1]==0,"attachment RGB blocked manual color changes");
 + led_game.apply_usb_output_report(host_led);Session owned_led;owned_led.observe(host_led);Options manual_led;manual_led.led_mode="fixed";manual_led.red=255;
 + auto forwarded_led=compose(led_game.state(),owned_led,manual_led,true,0,1);
 + check(owned_led.led_owned && !(forwarded_led[38]&2) && forwarded_led[offsetof(vds_set_state_data,led_blue)]==128,"game-owned PS5 RGB reissued fade or was overwritten");
@@ -4389,7 +4431,9 @@ index 0000000..5b5d554
 + check(rgb[1]==4 && rgb[9]==0 && rgb[38]==0 && rgb[offsetof(vds_set_state_data,led_red)]==115 && rgb[offsetof(vds_set_state_data,led_green)]==54 && rgb[offsetof(vds_set_state_data,led_blue)]==145,"Xbox RGB changed unrelated power/audio/fade channels");}
 + auto stopped=xbox_state(0,true);check(stopped[0]==15 && stopped[1]==0 && stopped[9]==0 && stopped[38]==0 && stopped[offsetof(vds_set_state_data,left_trigger_ffb)]==5 && stopped[offsetof(vds_set_state_data,right_trigger_ffb)]==5,"Xbox cleanup touched unrelated channels");
 + auto path=std::filesystem::temp_directory_path()/("DS5Link-effects-test-"+std::to_string(runtime::Clock::now().time_since_epoch().count())+".json");runtime::configure(path.string());o.led_mode="fixed";runtime::update(json(o));Session session;
-+ check(runtime::render(base,session)==base,"persisted effects activated without a UI lease");
++ auto idle=runtime::render(base,session);
++ check(idle[offsetof(vds_set_state_data,left_trigger_ffb)]==base[offsetof(vds_set_state_data,left_trigger_ffb)] && !session.left_used && !session.audio_used,"persisted trigger or audio effects activated without a UI lease");
++ check(runtime::needs_led_init(session),"battery lightbar initialization requires a UI lease");
 + runtime::current(true,80);out=runtime::render(base,session);check(out[2]==0 && out[3]==0,"level telemetry produced constant rumble");
 + Session xbox_runtime;xbox_runtime.led_ready=true;auto xbox_rendered=runtime::render(xbox_state(0x7f12),xbox_runtime,{},false);
 + check((xbox_rendered[0]&3)==3 && xbox_rendered[2]==0x12 && xbox_rendered[3]==0x7f && !(xbox_rendered[1]&2) && !xbox_runtime.audio_used,"saved PS5 audio affected Xbox output");
@@ -4422,6 +4466,9 @@ index 0000000..5b5d554
 + check(runtime::current()["options"]==json(o),"preview changed saved effects");
 + runtime::configure(path.string());check(runtime::current()["options"]==json(o),"saved effects did not reload");std::filesystem::remove(path);
 + std::cout<<"Effects encoding, channel priority, passthrough, animations, lease expiry and persistence passed\n";
++} catch (const std::exception& error) {
++ std::cerr<<error.what()<<'\n';
++ return 1;
 +}
 diff --git a/tests/input_tests.cc b/tests/input_tests.cc
 new file mode 100644
