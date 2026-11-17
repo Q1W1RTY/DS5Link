@@ -1,3 +1,8 @@
+## 0.1.65 — DualSense lightbar and microphone
+
+- Show battery level until a game sets the DualSense lightbar color.
+- Keep the microphone stream off during Bluetooth playback unless Windows opens the capture stream.
+
 ## 0.1.64 - DualSense input on reconnect
 
 - Fixed the current-state HID query returning an empty report, which could move menus by itself after connecting a DualSense while a game was running.
