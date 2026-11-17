@@ -576,7 +576,7 @@ index 0000000..1a7190f
 +}
 +}
 diff --git a/src/platform/win32/vds_usbip.cc b/src/platform/win32/vds_usbip.cc
-index a50fe74..0952f6d 100644
+index a50fe74..930a727 100644
 --- a/src/platform/win32/vds_usbip.cc
 +++ b/src/platform/win32/vds_usbip.cc
 @@ -1,8 +1,11 @@
@@ -758,16 +758,56 @@ index a50fe74..0952f6d 100644
          }
          if (!built.empty()) {
            const std::size_t copy_len =
-@@ -1491,7 +1511,7 @@ bool VirtualPort::Impl::handle_cmd_submit(
+@@ -1481,17 +1501,31 @@ bool VirtualPort::Impl::handle_cmd_submit(
+       std::memcpy(bytes.data(), &event, sizeof(event));
+       write_daemon_frame(pipe_server.get(), VDS_FRAME_USB_INTERFACE, bytes);
+       ret.status = 0;
+-    } else if ((bmRequestType & 0x60) == 0x20 && bRequest == 0x01 &&
+-               device_to_host) {
++    } else if (bmRequestType == 0xa1 && bRequest == 0x01 &&
++               wIndex == VDS_USB_HID_INTERFACE && (wValue >> 8) == 1) {
++      // GET_REPORT(Input) reads the same snapshot as the interrupt endpoint.
++      // Forwarding it as a Bluetooth feature read fails, and an empty successful
++      // completion leaves HidD_GetInputReport callers with a zero-filled state.
++      if ((wValue & 0xff) == 1) {
++        std::lock_guard<std::mutex> lk(demux_mutex);
++        const auto& snapshot = hid_input_snapshot.report();
++        reply_data.assign(snapshot.begin(), snapshot.end());
++        ret.status = 0;
++      } else {
++        ret.status = -32;
++      }
++    } else if (bmRequestType == 0xa1 && bRequest == 0x01 &&
++               wIndex == VDS_USB_HID_INTERFACE && (wValue >> 8) == 3) {
+       // HID GET_REPORT (feature). Ask vdsd, which caches/forwards over
+       // Bluetooth as needed, then wait for the FEATURE_REPLY frame.
+       const std::uint8_t report_id = static_cast<std::uint8_t>(wValue & 0xff);
+       const std::array<std::uint8_t, 1> request{report_id};
+       write_daemon_frame(pipe_server.get(), VDS_FRAME_USB_FEATURE_GET, request);
        Frame reply;
-       wait_for_feature_reply(reply, 500);
-       if (reply.header.type == VDS_FRAME_USB_FEATURE_REPLY) {
+-      wait_for_feature_reply(reply, 500);
+-      if (reply.header.type == VDS_FRAME_USB_FEATURE_REPLY) {
 -        reply_data = reply.payload;
++      if (wait_for_feature_reply(reply, 500) &&
++          reply.header.type == VDS_FRAME_USB_FEATURE_REPLY &&
++          !reply.payload.empty() && reply.payload[0] == report_id) {
 +        reply_data = virtual_pairing_identity(reply.payload,port_index);
          // Never return more than the host asked for. A control-IN reply whose
          // actual_length exceeds the requested wLength is a wire violation that
          // makes usbip-win2 reset the whole TCP connection (dropping every
-@@ -1575,8 +1595,8 @@ bool VirtualPort::Impl::handle_cmd_submit(
+@@ -1502,8 +1536,10 @@ bool VirtualPort::Impl::handle_cmd_submit(
+         if (reply_data.size() > wLength) {
+           reply_data.resize(wLength);
+         }
++        ret.status = 0;
++      } else {
++        ret.status = -32;
+       }
+-      ret.status = 0;
+     } else if ((bmRequestType & 0x60) == 0x20 && bRequest == 0x09) {
+       // HID SET_REPORT (feature/output via control pipe).
+       write_daemon_frame(pipe_server.get(), VDS_FRAME_USB_FEATURE_SET,
+@@ -1575,8 +1611,8 @@ bool VirtualPort::Impl::handle_cmd_submit(
      Frame frame;
      if (wait_for_hid_in_frame(frame, 50)) {
        reply_data = frame.payload;
@@ -778,7 +818,7 @@ index a50fe74..0952f6d 100644
    } else if (cmd.base.ep == kEpHidOut && cmd.base.direction == kDirOut) {
      write_daemon_frame(pipe_server.get(), VDS_FRAME_USB_HID_OUT, out_data);
      ret.status = 0;
-@@ -1706,6 +1726,7 @@ bool VirtualPort::Impl::handle_cmd_submit(
+@@ -1706,6 +1742,7 @@ bool VirtualPort::Impl::handle_cmd_submit(
    if (pace_out || pace_in) {
      PacedReply paced{};
      paced.client = client;
@@ -786,7 +826,7 @@ index a50fe74..0952f6d 100644
      const std::size_t data_len = pace_in ? reply_data.size() : 0;
      const std::size_t iso_len =
          reply_iso.size() * sizeof(UsbipIsoPacketDescriptor);
-@@ -1727,6 +1748,9 @@ bool VirtualPort::Impl::handle_cmd_submit(
+@@ -1727,6 +1764,9 @@ bool VirtualPort::Impl::handle_cmd_submit(
            anchor < now - std::chrono::milliseconds(250)) {
          anchor = now; // stream (re)start: first URB completes now
        }

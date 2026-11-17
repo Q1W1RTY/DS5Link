@@ -43,7 +43,17 @@ Copy-Item (Join-Path $dependencyPackage 'dependencies.json') $payload
 Copy-Item (Join-Path $root 'third_party\ViGEmClient\LICENSE') (Join-Path $payload 'app\licenses\ViGEmClient-MIT.txt')
 Copy-Item (Join-Path $root 'third_party\NAudio\LICENSE') (Join-Path $payload 'app\licenses\NAudio-MIT.txt')
 Copy-Item (Join-Path $root 'third_party\TriggerEffects\LICENSE') (Join-Path $payload 'app\licenses\TriggerEffects-MIT.txt')
-Copy-Item (Join-Path $PackageDirectory 'build.json') (Join-Path $payload 'engine-build.json')
+if($CandidateNativeDirectory){
+ $engineBuild=[ordered]@{
+  version=$version
+  upstream=(git -C (Join-Path $root 'engine\vds') rev-parse HEAD)
+  patchSha256=(Get-FileHash (Join-Path $root 'patches\vds\0001-ds5link-bootstrap.patch')).Hash
+  nativeSha256=(Get-FileHash (Join-Path $payload 'app\engine\vdsd.exe')).Hash
+ }
+ $engineBuild | ConvertTo-Json | Set-Content (Join-Path $payload 'engine-build.json') -Encoding utf8
+}else{
+ Copy-Item (Join-Path $PackageDirectory 'build.json') (Join-Path $payload 'engine-build.json')
+}
 Copy-Item (Join-Path $root 'installer\Install.ps1'),(Join-Path $root 'installer\Uninstall.ps1'),(Join-Path $root 'installer\InstallPaths.ps1'),(Join-Path $root 'installer\OwnedFiles.ps1'),(Join-Path $root 'installer\Dependencies.ps1') $payload
 Copy-Item (Join-Path $root 'docs\user\INSTALL.md') (Join-Path $payload 'README-RU.md')
 Copy-Item (Join-Path $root 'docs\user\INSTALL.md') (Join-Path $OutputDirectory 'README-RU.md')

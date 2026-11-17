@@ -1,3 +1,7 @@
+## 0.1.64 - DualSense input on reconnect
+
+- Fixed the current-state HID query returning an empty report, which could move menus by itself after connecting a DualSense while a game was running.
+
 ## 0.1.63 — Обновление, профили и тачпад
 
 - Обновление учитывает, была ли уже выполнена требуемая перезагрузка Windows.
